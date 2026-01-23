@@ -1,7 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Search, Plus, User, Menu, X } from 'lucide-react';
+import { Search, ChevronDown, Bell, ShoppingCart, Menu, X, User, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { CATEGORIES } from '@/types/marketplace';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -12,49 +13,84 @@ const Header = () => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/productos?search=${encodeURIComponent(searchQuery)}`);
+    } else {
+      navigate('/productos');
     }
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+    <header className="sticky top-0 z-50 w-full bg-card border-b">
+      {/* Top bar */}
+      <div className="border-b bg-secondary/30">
+        <div className="container-market">
+          <div className="flex h-9 items-center justify-between text-sm">
+            <div className="flex items-center gap-4">
+              <span className="text-muted-foreground">
+                ¡Hola! <Link to="/auth" className="text-primary hover:underline font-medium">Inicia sesión</Link> o <Link to="/auth" className="text-primary hover:underline font-medium">regístrate</Link>
+              </span>
+            </div>
+            <div className="hidden md:flex items-center gap-4">
+              <Link to="/productos" className="nav-link">Ofertas del día</Link>
+              <Link to="/publicar" className="nav-link">Vender</Link>
+              <Link to="#" className="nav-link">Ayuda</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main header */}
       <div className="container-market">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xl">C</span>
-            </div>
-            <span className="hidden sm:block font-bold text-xl text-foreground">
-              Chuquiago<span className="text-primary">Market</span>
+          <Link to="/" className="flex items-center gap-1 shrink-0">
+            <span className="text-2xl md:text-3xl font-extrabold">
+              <span className="text-[#E53238]">C</span>
+              <span className="text-[#0064D2]">h</span>
+              <span className="text-[#F5AF02]">u</span>
+              <span className="text-[#86B817]">q</span>
+              <span className="text-[#E53238]">u</span>
+              <span className="text-[#0064D2]">i</span>
+              <span className="text-[#F5AF02]">a</span>
+              <span className="text-[#86B817]">g</span>
+              <span className="text-[#E53238]">o</span>
             </span>
           </Link>
 
           {/* Search - Desktop */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-2xl">
+            <div className="flex w-full">
               <input
                 type="text"
-                placeholder="Buscar productos..."
+                placeholder="Buscar cualquier cosa"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-11 pl-10 pr-4 rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none transition-colors"
+                className="search-input-ebay"
               />
+              <button type="button" className="h-12 px-4 bg-background border-2 border-l-0 border-border flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Categorías
+                <ChevronDown className="h-4 w-4" />
+              </button>
+              <button type="submit" className="search-button-ebay">
+                Buscar
+              </button>
             </div>
           </form>
 
           {/* Actions - Desktop */}
-          <div className="hidden md:flex items-center gap-3">
-            <Button variant="accent" size="default" asChild>
-              <Link to="/publicar">
-                <Plus className="h-5 w-5" />
-                Vender
+          <div className="hidden md:flex items-center gap-2">
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="#">
+                <Bell className="h-5 w-5" />
               </Link>
             </Button>
-            <Button variant="outline" size="default" asChild>
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="#">
+                <ShoppingCart className="h-5 w-5" />
+              </Link>
+            </Button>
+            <Button variant="ghost" size="icon" asChild>
               <Link to="/auth">
                 <User className="h-5 w-5" />
-                Entrar
               </Link>
             </Button>
           </div>
@@ -70,24 +106,42 @@ const Header = () => {
 
         {/* Mobile Search */}
         <form onSubmit={handleSearch} className="md:hidden pb-3">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <div className="flex w-full">
             <input
               type="text"
-              placeholder="Buscar productos..."
+              placeholder="Buscar en Chuquiago Market"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-11 pl-10 pr-4 rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none transition-colors"
+              className="flex-1 h-11 pl-4 pr-4 rounded-l-full border-2 border-border bg-background focus:border-primary focus:outline-none transition-colors"
             />
+            <button type="submit" className="h-11 px-6 bg-primary text-primary-foreground font-semibold rounded-r-full">
+              <Search className="h-5 w-5" />
+            </button>
           </div>
         </form>
+
+        {/* Categories nav - Desktop */}
+        <nav className="hidden md:flex items-center gap-1 pb-2 overflow-x-auto">
+          {CATEGORIES.map((category) => (
+            <Link
+              key={category.id}
+              to={`/productos?category=${category.id}`}
+              className="nav-link whitespace-nowrap"
+            >
+              {category.name}
+            </Link>
+          ))}
+          <Link to="/productos" className="nav-link whitespace-nowrap flex items-center gap-1">
+            Más <ChevronDown className="h-4 w-4" />
+          </Link>
+        </nav>
       </div>
 
       {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden border-t bg-card animate-fade-in">
           <div className="container-market py-4 flex flex-col gap-3">
-            <Button variant="accent" size="lg" className="w-full" asChild>
+            <Button size="lg" className="w-full" asChild>
               <Link to="/publicar" onClick={() => setIsMenuOpen(false)}>
                 <Plus className="h-5 w-5" />
                 Vender producto
@@ -99,6 +153,21 @@ const Header = () => {
                 Iniciar sesión
               </Link>
             </Button>
+            <div className="border-t pt-3 mt-2">
+              <p className="text-sm font-medium text-muted-foreground mb-2">Categorías</p>
+              <div className="grid grid-cols-2 gap-2">
+                {CATEGORIES.map((category) => (
+                  <Link
+                    key={category.id}
+                    to={`/productos?category=${category.id}`}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="text-sm py-2 px-3 rounded-lg hover:bg-secondary transition-colors"
+                  >
+                    {category.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}

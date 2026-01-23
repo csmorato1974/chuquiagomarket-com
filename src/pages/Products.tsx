@@ -98,13 +98,12 @@ const Products = () => {
                   <button
                     key={category.id}
                     onClick={() => handleCategoryClick(category.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                    className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                       categoryFilter === category.id
                         ? 'bg-primary text-primary-foreground'
                         : 'hover:bg-secondary'
                     }`}
                   >
-                    <span>{category.icon}</span>
                     {category.name}
                   </button>
                 ))}
@@ -139,13 +138,12 @@ const Products = () => {
                       <button
                         key={category.id}
                         onClick={() => handleCategoryClick(category.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                           categoryFilter === category.id
                             ? 'bg-primary text-primary-foreground'
                             : 'hover:bg-secondary'
                         }`}
                       >
-                        <span>{category.icon}</span>
                         {category.name}
                       </button>
                     ))}

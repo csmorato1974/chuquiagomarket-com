@@ -3,12 +3,14 @@ export interface Product {
   title: string;
   description: string;
   price: number;
+  originalPrice?: number;
   category: Category;
   images: string[];
   sellerId: string;
   sellerName: string;
   createdAt: Date;
   location?: string;
+  freeShipping?: boolean;
 }
 
 export type Category = 
@@ -22,8 +24,7 @@ export type Category =
 export interface CategoryInfo {
   id: Category;
   name: string;
-  icon: string;
-  color: string;
+  image: string;
 }
 
 export interface User {
@@ -35,10 +36,10 @@ export interface User {
 }
 
 export const CATEGORIES: CategoryInfo[] = [
-  { id: 'electronics', name: 'Electrónica', icon: '📱', color: 'category-electronics' },
-  { id: 'fashion', name: 'Moda', icon: '👗', color: 'category-fashion' },
-  { id: 'home', name: 'Hogar', icon: '🏠', color: 'category-home' },
-  { id: 'sports', name: 'Deportes', icon: '⚽', color: 'category-sports' },
-  { id: 'vehicles', name: 'Vehículos', icon: '🚗', color: 'category-vehicles' },
-  { id: 'other', name: 'Otros', icon: '📦', color: 'category-other' },
+  { id: 'electronics', name: 'Electrónica', image: 'electronics' },
+  { id: 'fashion', name: 'Moda', image: 'fashion' },
+  { id: 'home', name: 'Hogar', image: 'home' },
+  { id: 'sports', name: 'Deportes', image: 'sports' },
+  { id: 'vehicles', name: 'Vehículos', image: 'vehicles' },
+  { id: 'other', name: 'Otros', image: 'other' },
 ];
