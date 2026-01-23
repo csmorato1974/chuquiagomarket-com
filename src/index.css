@@ -2,66 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Chuquiago Market Design System */
+/* Chuquiago Market - eBay Style Design System */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 @layer base {
   :root {
-    /* Core brand colors */
-    --background: 0 0% 98%;
-    --foreground: 222 47% 11%;
+    /* Core colors - eBay inspired */
+    --background: 0 0% 100%;
+    --foreground: 210 11% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 210 11% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 210 11% 15%;
 
-    /* Primary - Deep trustworthy blue */
-    --primary: 221 83% 53%;
+    /* Primary - eBay Blue */
+    --primary: 213 100% 42%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Light blue tint */
-    --secondary: 214 32% 91%;
-    --secondary-foreground: 222 47% 11%;
+    /* Secondary - Light gray */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 210 11% 15%;
 
-    /* Muted - Subtle grays */
-    --muted: 210 40% 96%;
+    /* Muted */
+    --muted: 220 14% 96%;
     --muted-foreground: 215 16% 47%;
 
-    /* Accent - Coral orange for CTAs */
-    --accent: 24 95% 53%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent - eBay Yellow/Gold for hero banners */
+    --accent: 40 96% 53%;
+    --accent-foreground: 210 11% 15%;
 
-    /* Success */
+    /* Success green */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
+
+    /* Deal red for prices */
+    --deal: 0 84% 50%;
+    --deal-foreground: 0 0% 100%;
 
     /* Destructive */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     /* UI Elements */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 213 100% 42%;
 
     --radius: 0.75rem;
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
-
-    /* Category colors */
-    --category-electronics: 221 83% 53%;
-    --category-fashion: 330 81% 60%;
-    --category-home: 142 76% 36%;
-    --category-sports: 24 95% 53%;
-    --category-vehicles: 262 83% 58%;
-    --category-other: 215 16% 47%;
+    /* Hero banner gradient */
+    --hero-gradient: linear-gradient(135deg, hsl(40, 96%, 53%) 0%, hsl(32, 95%, 50%) 100%);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -74,36 +67,39 @@
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
+    --background: 210 11% 10%;
+    --foreground: 0 0% 98%;
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
+    --card: 210 11% 12%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 210 11% 12%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 221 83% 53%;
+    --primary: 213 100% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 210 11% 18%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 217 33% 17%;
+    --muted: 210 11% 18%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 24 95% 53%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 40 96% 53%;
+    --accent-foreground: 210 11% 15%;
 
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --deal: 0 84% 50%;
+    --deal-foreground: 0 0% 100%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 221 83% 53%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 210 11% 20%;
+    --input: 210 11% 20%;
+    --ring: 213 100% 50%;
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -127,82 +123,75 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 }
 
 @layer utilities {
   .container-market {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8;
   }
 
-  .glass-effect {
-    @apply bg-card/80 backdrop-blur-md;
+  .hero-gradient {
+    background: var(--hero-gradient);
   }
 
-  .card-hover {
-    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  .text-deal {
+    color: hsl(var(--deal));
   }
 
-  .btn-press {
-    @apply active:scale-[0.98] transition-transform;
+  .text-price-old {
+    @apply text-muted-foreground line-through text-sm;
   }
 
-  .text-gradient {
-    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  .card-product {
+    @apply bg-card rounded-xl border transition-all duration-200 hover:shadow-lg overflow-hidden;
   }
 
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
+  .category-circle {
+    @apply w-full aspect-square rounded-full bg-secondary flex items-center justify-center overflow-hidden transition-transform duration-200 hover:scale-105;
   }
 
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-out;
+  .search-input-ebay {
+    @apply h-12 bg-background border-2 border-border rounded-l-full pl-5 pr-4 focus:border-primary focus:outline-none transition-colors flex-1;
   }
 
-  .animate-slide-up {
-    animation: slideUp 0.5s ease-out;
+  .search-button-ebay {
+    @apply h-12 px-8 bg-primary text-primary-foreground font-semibold rounded-r-full hover:bg-primary/90 transition-colors;
   }
-}
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
+  .nav-link {
+    @apply text-sm font-medium text-foreground hover:text-primary transition-colors px-3 py-2;
   }
-  50% {
-    transform: translateY(-10px);
+
+  .favorite-button {
+    @apply absolute top-3 right-3 w-9 h-9 rounded-full bg-card/90 backdrop-blur-sm flex items-center justify-center shadow-sm hover:bg-card transition-colors z-10;
   }
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 0 0 hsl(var(--accent) / 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 10px hsl(var(--accent) / 0);
-  }
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
-.pulse-glow {
-  animation: pulse-glow 2s infinite;
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.5s ease-out;
 }

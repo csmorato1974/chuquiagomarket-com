@@ -112,13 +112,12 @@ const Publish = () => {
                     key={category.id}
                     type="button"
                     onClick={() => setFormData({ ...formData, category: category.id })}
-                    className={`flex items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                    className={`flex items-center justify-center p-4 rounded-xl border-2 transition-all ${
                       formData.category === category.id
                         ? 'border-primary bg-primary/5'
                         : 'border-input hover:border-primary/50'
                     }`}
                   >
-                    <span className="text-2xl">{category.icon}</span>
                     <span className="font-medium text-sm">{category.name}</span>
                   </button>
                 ))}
@@ -141,14 +140,13 @@ const Publish = () => {
             {/* Submit */}
             <Button
               type="submit"
-              size="xl"
-              variant="accent"
+              size="lg"
               className="w-full"
               disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>
-                  <div className="h-5 w-5 border-2 border-accent-foreground/30 border-t-accent-foreground rounded-full animate-spin" />
+                  <div className="h-5 w-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                   Publicando...
                 </>
               ) : (
