@@ -10,7 +10,7 @@ const HeroSection = () => {
         style={{ backgroundImage: `url(${heroBanner})` }}
       >
         {/* Overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-accent/90 to-accent/60" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/30" />
         
         <div className="container-market relative z-10 py-12 md:py-20">
           <div className="max-w-lg">
