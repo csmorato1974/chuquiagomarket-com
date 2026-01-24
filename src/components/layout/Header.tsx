@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Search, ChevronDown, Bell, ShoppingCart, Menu, X, User, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { CATEGORIES } from '@/types/marketplace';
+import logo from '@/assets/logo.png';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -42,18 +43,8 @@ const Header = () => {
       <div className="container-market">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-1 shrink-0">
-            <span className="text-2xl md:text-3xl font-extrabold">
-              <span className="text-[#E53238]">C</span>
-              <span className="text-[#0064D2]">h</span>
-              <span className="text-[#F5AF02]">u</span>
-              <span className="text-[#86B817]">q</span>
-              <span className="text-[#E53238]">u</span>
-              <span className="text-[#0064D2]">i</span>
-              <span className="text-[#F5AF02]">a</span>
-              <span className="text-[#86B817]">g</span>
-              <span className="text-[#E53238]">o</span>
-            </span>
+          <Link to="/" className="flex items-center shrink-0">
+            <img src={logo} alt="Chuquiago Market" className="h-10 md:h-12 w-auto" />
           </Link>
 
           {/* Search - Desktop */}
