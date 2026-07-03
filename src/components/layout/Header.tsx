@@ -4,6 +4,7 @@ import { Search, ChevronDown, Bell, ShoppingCart, Menu, X, User, Plus } from 'lu
 import { useState } from 'react';
 import { CATEGORIES } from '@/types/marketplace';
 import { useAuth } from '@/hooks/useAuth';
+import { useRoles } from '@/hooks/useRole';
 import logo from '@/assets/logo.png';
 
 const Header = () => {
