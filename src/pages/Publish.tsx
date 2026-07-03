@@ -103,7 +103,7 @@ const Publish = ({ editingId }: Props) => {
       if (editingId) {
         // Editing a published listing sends it back to review.
         const { data: existing } = await supabase.from('listings').select('status').eq('id', editingId).maybeSingle();
-        const nextStatus = existing?.status === 'published' ? 'pending_review' : status;
+        const nextStatus: ListingStatus = existing?.status === 'published' ? 'pending_review' : status;
         const { error } = await supabase.from('listings').update({ ...payload, status: nextStatus }).eq('id', editingId);
         if (error) throw error;
       } else {
