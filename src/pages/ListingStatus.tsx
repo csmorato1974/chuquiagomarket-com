@@ -122,6 +122,7 @@ const ListingStatusPage = () => {
 
         <section className="mt-8 flex flex-wrap gap-2">
           <Button asChild variant="outline"><Link to={`/anuncio/${row.id}/editar`}>Editar</Link></Button>
+          {row.status === 'rejected' && <Button onClick={resubmit}>Reenviar a revisión</Button>}
           {row.status === 'published' && <Button variant="outline" onClick={() => setStatus('paused')}>Pausar</Button>}
           {row.status === 'paused' && <Button variant="outline" onClick={() => setStatus('published')}>Reanudar</Button>}
           {row.status === 'published' && <Button variant="outline" onClick={() => setStatus('sold')}>Marcar como vendido</Button>}
