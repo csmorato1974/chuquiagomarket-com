@@ -45,11 +45,13 @@ const Verification = () => {
         const { error } = await supabase.storage.from('verification-docs').upload(path, file);
         if (error) throw error;
       }
-      const payload: Record<string, unknown> = {
-        user_id: user.id, status: 'pending', notes, submitted_at: new Date().toISOString(),
-      };
-      if (path) payload.id_document_path = path;
-      const { error } = await supabase.from('seller_verifications').upsert(payload);
+      const { error } = await supabase.from('seller_verifications').upsert({
+        user_id: user.id,
+        status: 'pending' as const,
+        notes,
+        submitted_at: new Date().toISOString(),
+        ...(path ? { id_document_path: path } : {}),
+      });
       if (error) throw error;
       setStatus('pending');
       toast.success('Solicitud enviada. Te avisaremos cuando terminemos la revisión.');
