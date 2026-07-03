@@ -86,7 +86,7 @@ const Header = () => {
               </Link>
             </Button>
             <Button variant="ghost" size="icon" asChild>
-              <Link to="/auth">
+              <Link to={user ? '/perfil' : '/auth'}>
                 <User className="h-5 w-5" />
               </Link>
             </Button>
