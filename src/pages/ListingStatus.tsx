@@ -30,7 +30,7 @@ const ListingStatusPage = () => {
   useEffect(() => {
     if (!id) return;
     (async () => {
-      const { data } = await supabase.from('listings').select('id,title,status,created_at,published_at,rejection_reason,seller_id').eq('id', id).maybeSingle();
+      const { data } = await supabase.from('listings').select('id,title,status,created_at,published_at,rejection_reason,rejection_reason_code,rejection_notes,seller_id').eq('id', id).maybeSingle();
       setRow(data as Row | null);
       const { data: events } = await supabase.from('lead_events').select('type').eq('listing_id', id);
       const s = { view: 0, contact_click: 0, favorite: 0 };
