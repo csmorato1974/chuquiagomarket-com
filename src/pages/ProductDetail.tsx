@@ -43,10 +43,13 @@ const ProductDetail = () => {
     if (!user) return toast.error('Inicia sesión para guardar');
     if (!id) return;
     if (isFavorite) {
-      await supabase.from('favorites').delete().eq('user_id', user.id).eq('listing_id', id);
+      const { error } = await supabase.from('favorites').delete().eq('user_id', user.id).eq('listing_id', id);
+      if (error) return toast.error(error.message);
       setIsFavorite(false);
     } else {
-      await supabase.from('favorites').insert({ user_id: user.id, listing_id: id });
+      const { error } = await supabase.from('favorites').insert({ user_id: user.id, listing_id: id });
+      // 23505 = unique_violation (ya estaba en favoritos). Lo tratamos como éxito idempotente.
+      if (error && error.code !== '23505') return toast.error(error.message);
       await supabase.from('lead_events').insert({ listing_id: id, user_id: user.id, type: 'favorite' });
       setIsFavorite(true);
     }
