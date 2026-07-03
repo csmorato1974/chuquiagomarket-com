@@ -150,23 +150,13 @@ const Publish = ({ editingId }: Props) => {
           <form onSubmit={(e) => { e.preventDefault(); persist('pending_review'); }} className="space-y-6">
             <div>
               <Label className="text-base">Foto del producto</Label>
-              <div className="mt-2">
-                <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-input rounded-xl cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors overflow-hidden">
-                  {form.image ? (
-                    <div className="flex items-center gap-2 text-primary"><Check className="h-6 w-6" /><span className="font-medium">{form.image.name}</span></div>
-                  ) : existingCover ? (
-                    <img src={existingCover} alt="" className="h-full w-full object-contain" />
-                  ) : (
-                    <div className="flex flex-col items-center text-muted-foreground">
-                      <Camera className="h-12 w-12 mb-2" />
-                      <span className="font-medium">Haz clic para subir una foto</span>
-                      <span className="text-sm">PNG, JPG hasta 10MB</span>
-                    </div>
-                  )}
-                  <input type="file" className="hidden" accept="image/*" onChange={(e) => setForm({ ...form, image: e.target.files?.[0] || null })} />
-                </label>
-              </div>
+              <ImagePicker
+                value={form.image}
+                onChange={(f) => setForm({ ...form, image: f })}
+                existingUrl={existingCover}
+              />
             </div>
+
 
             <div>
               <Label htmlFor="title" className="text-base">Título</Label>
