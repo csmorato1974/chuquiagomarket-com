@@ -147,7 +147,7 @@ export default function Moderation() {
         .from('listings')
         .update({
           status: 'rejected' as const,
-          rejection_reason_code: reasonCode as never,
+          rejection_reason_code: reasonCode as RejectionReasonCode,
           rejection_notes: reasonNotes || null,
           rejection_reason: [label, reasonNotes].filter(Boolean).join(' — '),
         })
@@ -159,7 +159,7 @@ export default function Moderation() {
         .from('listing_flags')
         .update({
           status: 'resolved',
-          resolution: reasonCode as never,
+          resolution: reasonCode as FlagResolution,
           resolved_by: user.id,
           resolved_at: new Date().toISOString(),
         })
@@ -171,7 +171,7 @@ export default function Moderation() {
         .from('seller_verifications')
         .update({
           status: 'rejected' as const,
-          rejection_code: reasonCode as never,
+          rejection_code: reasonCode as VerificationRejection,
           notes: reasonNotes || null,
           reviewed_at: new Date().toISOString(),
         })
