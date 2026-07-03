@@ -32,6 +32,11 @@ import {
   FLAG_REASONS,
 } from '@/lib/moderation';
 import AuditHistoryDialog from '@/components/admin/AuditHistoryDialog';
+import type { Database } from '@/integrations/supabase/types';
+
+type RejectionReasonCode = Database['public']['Enums']['rejection_reason_code'];
+type FlagResolution = Database['public']['Enums']['flag_resolution'];
+type VerificationRejection = Database['public']['Enums']['verification_rejection'];
 
 type Listing = {
   id: string;
