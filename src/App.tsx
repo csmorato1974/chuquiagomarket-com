@@ -12,6 +12,7 @@ import Profile from "./pages/Profile";
 import EditListing from "./pages/EditListing";
 import ListingStatusPage from "./pages/ListingStatus";
 import Verification from "./pages/Verification";
+import Moderation from "./pages/admin/Moderation";
 import Help from "./pages/Help";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
@@ -46,6 +47,7 @@ const App = () => (
           <Route path="/perfil/verificacion" element={<Protected><Verification /></Protected>} />
           <Route path="/anuncio/:id/editar" element={<Protected><EditListing /></Protected>} />
           <Route path="/anuncio/:id/estado" element={<Protected><ListingStatusPage /></Protected>} />
+          <Route path="/admin/moderacion" element={<Protected><Moderation /></Protected>} />
           <Route path="/ayuda" element={<Help />} />
           <Route path="/contacto" element={<Contact />} />
           <Route path="/privacidad" element={<Privacy />} />

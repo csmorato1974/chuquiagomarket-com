@@ -7,10 +7,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { STATUS_LABEL, STATUS_COLOR, formatDate } from '@/lib/format';
 import { CheckCircle2, Clock, XCircle, Eye, MousePointerClick, Heart } from 'lucide-react';
 import { ListingStatus } from '@/types/marketplace';
+import { REJECTION_REASONS } from '@/lib/moderation';
 
 interface Row {
   id: string; title: string; status: ListingStatus; created_at: string;
-  published_at: string | null; rejection_reason: string | null; seller_id: string;
+  published_at: string | null; rejection_reason: string | null;
+  rejection_reason_code: string | null; rejection_notes: string | null; seller_id: string;
 }
 
 const timeline: { key: ListingStatus; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -28,7 +30,7 @@ const ListingStatusPage = () => {
   useEffect(() => {
     if (!id) return;
     (async () => {
-      const { data } = await supabase.from('listings').select('id,title,status,created_at,published_at,rejection_reason,seller_id').eq('id', id).maybeSingle();
+      const { data } = await supabase.from('listings').select('id,title,status,created_at,published_at,rejection_reason,rejection_reason_code,rejection_notes,seller_id').eq('id', id).maybeSingle();
       setRow(data as Row | null);
       const { data: events } = await supabase.from('lead_events').select('type').eq('listing_id', id);
       const s = { view: 0, contact_click: 0, favorite: 0 };
@@ -53,10 +55,17 @@ const ListingStatusPage = () => {
           {STATUS_LABEL[row.status]}
         </span>
 
-        {row.status === 'rejected' && row.rejection_reason && (
+        {row.status === 'rejected' && (row.rejection_reason_code || row.rejection_notes || row.rejection_reason) && (
           <div className="mt-4 p-4 border border-destructive/40 rounded-xl bg-destructive/5">
             <div className="flex items-center gap-2 font-semibold text-destructive mb-1"><XCircle className="h-5 w-5" />Rechazado</div>
-            <p className="text-sm">{row.rejection_reason}</p>
+            {row.rejection_reason_code && (
+              <p className="text-sm font-medium">{REJECTION_REASONS[row.rejection_reason_code] ?? row.rejection_reason_code}</p>
+            )}
+            {row.rejection_notes ? (
+              <p className="text-sm text-muted-foreground mt-1">{row.rejection_notes}</p>
+            ) : (!row.rejection_reason_code && row.rejection_reason && (
+              <p className="text-sm">{row.rejection_reason}</p>
+            ))}
           </div>
         )}
 

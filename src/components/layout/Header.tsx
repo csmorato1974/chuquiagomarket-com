@@ -4,6 +4,7 @@ import { Search, ChevronDown, Bell, ShoppingCart, Menu, X, User, Plus } from 'lu
 import { useState } from 'react';
 import { CATEGORIES } from '@/types/marketplace';
 import { useAuth } from '@/hooks/useAuth';
+import { useRoles } from '@/hooks/useRole';
 import logo from '@/assets/logo.png';
 
 const Header = () => {
@@ -11,6 +12,7 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { isStaff } = useRoles();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +42,7 @@ const Header = () => {
               <Link to="/productos" className="nav-link">Ofertas del día</Link>
               <Link to="/publicar" className="nav-link">Vender</Link>
               <Link to="#" className="nav-link">Ayuda</Link>
+              {isStaff && <Link to="/admin/moderacion" className="nav-link text-primary font-semibold">Moderación</Link>}
             </div>
           </div>
         </div>
