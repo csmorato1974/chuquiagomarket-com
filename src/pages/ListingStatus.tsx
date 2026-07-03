@@ -7,10 +7,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { STATUS_LABEL, STATUS_COLOR, formatDate } from '@/lib/format';
 import { CheckCircle2, Clock, XCircle, Eye, MousePointerClick, Heart } from 'lucide-react';
 import { ListingStatus } from '@/types/marketplace';
+import { REJECTION_REASONS } from '@/lib/moderation';
 
 interface Row {
   id: string; title: string; status: ListingStatus; created_at: string;
-  published_at: string | null; rejection_reason: string | null; seller_id: string;
+  published_at: string | null; rejection_reason: string | null;
+  rejection_reason_code: string | null; rejection_notes: string | null; seller_id: string;
 }
 
 const timeline: { key: ListingStatus; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
