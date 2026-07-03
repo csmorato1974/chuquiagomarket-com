@@ -3,12 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Search, ChevronDown, Bell, ShoppingCart, Menu, X, User, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { CATEGORIES } from '@/types/marketplace';
+import { useAuth } from '@/hooks/useAuth';
 import logo from '@/assets/logo.png';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +29,11 @@ const Header = () => {
           <div className="flex h-9 items-center justify-between text-sm">
             <div className="flex items-center gap-4">
               <span className="text-muted-foreground">
-                ¡Hola! <Link to="/auth" className="text-primary hover:underline font-medium">Inicia sesión</Link> o <Link to="/auth" className="text-primary hover:underline font-medium">regístrate</Link>
+                {user ? (
+                  <>Hola, <Link to="/perfil" className="text-primary hover:underline font-medium">mi cuenta</Link> · <button onClick={() => signOut()} className="text-primary hover:underline font-medium">salir</button></>
+                ) : (
+                  <>¡Hola! <Link to="/auth" className="text-primary hover:underline font-medium">Inicia sesión</Link> o <Link to="/auth" className="text-primary hover:underline font-medium">regístrate</Link></>
+                )}
               </span>
             </div>
             <div className="hidden md:flex items-center gap-4">
@@ -80,7 +86,7 @@ const Header = () => {
               </Link>
             </Button>
             <Button variant="ghost" size="icon" asChild>
-              <Link to="/auth">
+              <Link to={user ? '/perfil' : '/auth'}>
                 <User className="h-5 w-5" />
               </Link>
             </Button>
