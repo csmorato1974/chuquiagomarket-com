@@ -47,6 +47,7 @@ const App = () => (
           <Route path="/perfil/verificacion" element={<Protected><Verification /></Protected>} />
           <Route path="/anuncio/:id/editar" element={<Protected><EditListing /></Protected>} />
           <Route path="/anuncio/:id/estado" element={<Protected><ListingStatusPage /></Protected>} />
+          <Route path="/admin/moderacion" element={<Protected><Moderation /></Protected>} />
           <Route path="/ayuda" element={<Help />} />
           <Route path="/contacto" element={<Contact />} />
           <Route path="/privacidad" element={<Privacy />} />
