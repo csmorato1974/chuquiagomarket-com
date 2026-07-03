@@ -1,117 +1,83 @@
-# Plan: Beta lanzable — Marketplace local La Paz
+# Plan: Conectar Chuquiago Market a Lovable Cloud (backend real)
 
-Objetivo: dejar el proyecto listo como beta usable centrada en La Paz, con moneda Bs, señales de confianza, flujo de publicación con estados y páginas legales mínimas. Sin rediseño global — se refina lo existente.
+Convertimos la beta en un marketplace funcional con base de datos, autenticación, subida de imágenes, verificación de vendedores y seguridad por fila (RLS). Sin pagos.
 
-Nota: se trabaja con datos mock tipados (sin backend en esta fase). Si más adelante quieres persistencia real, activamos Lovable Cloud y migramos los tipos ya diseñados.
+## 1. Activar Lovable Cloud
+Se habilita el backend gestionado (base de datos Postgres, Auth y Storage). No requiere cuentas externas.
 
----
+## 2. Autenticación
+- Email + contraseña (auto-confirm activado para beta, sin verificación de correo).
+- Página `/auth` conectada de verdad (hoy es mock): login, registro y logout.
+- Listener `onAuthStateChange` + `getUser()` para proteger rutas.
+- Al registrarse se crea `profiles` automáticamente vía trigger.
 
-## 1. Localización a Bolivianos (Bs)
+## 3. Esquema de base de datos
 
-- Crear helper `src/lib/format.ts` con `formatBs(n)` → `Bs 1.234`.
-- Reemplazar todos los `€` y `toLocaleString('es-BO')` sueltos en:
-  - `ProductCard.tsx`, `ProductDetail.tsx`, `Products.tsx`, `Publish.tsx` (label del input), y cualquier lugar que muestre precio.
-- Ajustar textos: "Precio (€)" → "Precio (Bs)".
+### Tablas
+- **profiles** — 1 a 1 con `auth.users`. Campos: `id`, `display_name`, `avatar_url`, `zone`, `phone`, `bio`, `created_at`.
+- **user_roles** — tabla separada con enum `app_role` (`admin`, `moderator`, `user`). Nunca en profiles (evita escalada de privilegios).
+- **categories** — catálogo (`id`, `slug`, `name`, `description`, `sort_order`). Se siembra con las 6 categorías actuales.
+- **listings** — anuncio. Campos clave: `id`, `seller_id`, `category_id`, `title`, `description`, `price_bs` (numeric), `zone`, `condition`, `delivery_methods` (text[]), `status` (enum), `published_at`, `created_at`, `updated_at`, `cover_image_url`.
+- **listing_images** — múltiples imágenes por listing (`id`, `listing_id`, `path`, `sort_order`).
+- **listing_flags** — reportes (`id`, `listing_id`, `reporter_id`, `reason` enum, `note`, `created_at`, `status`).
+- **seller_verifications** — 1 por usuario (`user_id`, `status` enum `unverified|pending|verified|rejected`, `submitted_at`, `reviewed_at`, `notes`, `id_document_path`).
+- **favorites** — (`user_id`, `listing_id`, `created_at`), PK compuesta.
+- **lead_events** — analítica de interés (`id`, `listing_id`, `user_id` nullable, `type` enum `view|contact_click|whatsapp_click|favorite`, `created_at`).
 
-## 2. Home reescrita con propuesta local
+### Enums
+`listing_status`: `draft | pending_review | published | paused | rejected | sold | archived`
+`listing_condition`: `new | like_new | good | fair`
+`flag_reason`: `fraud | prohibited | spam | other`
+`verification_status`: `unverified | pending | verified | rejected`
+`app_role`: `admin | moderator | user`
+`lead_type`: `view | contact_click | whatsapp_click | favorite`
 
-`HeroSection.tsx` (sin cambiar la imagen actual de La Paz):
-- H1 sobrepuesto: "Compra y vende en La Paz, fácil y seguro".
-- Subtítulo: "Publica gratis en minutos. Encuentra cerca de ti."
-- 2 CTAs: "Explorar productos" / "Publicar anuncio".
+### Función helper
+`public.has_role(_user_id uuid, _role app_role)` — SECURITY DEFINER, para políticas sin recursión.
 
-`Index.tsx`:
-- Sustituir "Ofertas del día" → "Publicaciones recientes en La Paz".
-- Sustituir "Lo más buscado" → "Cerca de ti".
-- Nueva sección **"Cómo funciona"**: 3 pasos (Publica → Contacta → Entrega en La Paz).
-- Nueva sección **"Compra con confianza"**: 3 tarjetas (Vendedores verificados, Reglas claras, Reporta anuncios).
+## 4. Row Level Security (todas las tablas)
 
-## 3. Datos mock preparados para estructura real
+- **profiles**: SELECT público (para mostrar nombre del vendedor); UPDATE solo dueño.
+- **categories**: SELECT público; escritura solo admin.
+- **listings**:
+  - SELECT público solo si `status = 'published'`.
+  - SELECT del propio seller para cualquier estado.
+  - SELECT total para admin/moderator.
+  - INSERT: `seller_id = auth.uid()`; el status permitido al crear es `draft` o `pending_review`.
+  - UPDATE/DELETE: solo el seller propietario (o admin).
+- **listing_images**: SELECT si el listing es visible para el usuario; INSERT/DELETE solo dueño del listing.
+- **listing_flags**: INSERT autenticado (`reporter_id = auth.uid()`); SELECT solo admin/moderator.
+- **seller_verifications**: SELECT/UPDATE propio dueño; admin puede cambiar `status`.
+- **favorites**: SELECT/INSERT/DELETE solo dueño (`user_id = auth.uid()`).
+- **lead_events**: INSERT abierto (incluye anon para `view`); SELECT solo admin y el seller del listing referenciado.
 
-Ampliar `src/types/marketplace.ts` con tipos que reflejen la BD futura:
+Todas las tablas incluyen `GRANT` explícitos a `authenticated` / `service_role` (y `anon` solo en las de lectura pública).
 
-```ts
-type ListingStatus = 'draft' | 'pending_review' | 'published' | 'rejected';
-type Condition = 'new' | 'like_new' | 'good' | 'fair';
-type DeliveryMethod = 'pickup' | 'delivery_lapaz' | 'shipping_bo';
+## 5. Storage
+- Bucket **listing-images** público (lectura), con RLS de escritura por dueño: rutas `listings/{listing_id}/{uuid}.jpg`.
+- Bucket **verification-docs** privado: rutas `verifications/{user_id}/...`, solo dueño y admin acceden.
 
-interface Profile { id; displayName; verified: boolean; joinedAt; zone?: string; }
-interface Listing {
-  id; title; description; priceBs; category;
-  condition: Condition;
-  zone: string;                  // Zona de La Paz (Sopocachi, Miraflores…)
-  deliveryMethods: DeliveryMethod[];
-  status: ListingStatus;
-  publishedAt?: Date; createdAt;
-  sellerId; images: string[];
-}
-interface ListingFlag { id; listingId; reason; reporterId?; createdAt; }
-interface Category { id; slug; name; description; }
-```
+## 6. Pantallas conectadas (mínimas)
 
-- `mockProducts.ts` → `mockListings.ts` con datos ambientados en La Paz (zonas reales, vendedores locales, todos con `status: 'published'` salvo 1-2 de ejemplo por estado).
-- `mockProfiles.ts` con vendedores verificados/no verificados.
+- **/auth** — login / registro reales.
+- **/perfil/anuncios** ("Mis anuncios") — lista del seller con filtros por estado (`draft`, `pending_review`, `published`, `paused`, `rejected`, `sold`, `archived`), badges de color y acciones: pausar, marcar vendido, archivar, editar, eliminar.
+- **/publicar** — ahora inserta en `listings` con `status = pending_review` o `draft`. Sube imágenes al bucket, crea filas en `listing_images`, la primera es `cover_image_url`.
+- **/anuncio/:id/editar** — edición si `seller_id = auth.uid()`. Al editar un `published` vuelve a `pending_review`.
+- **/anuncio/:id/estado** — vista de estado del anuncio para el seller: timeline (creado → en revisión → publicado / rechazado con motivo), estadísticas básicas de `lead_events`, acciones rápidas.
+- **/perfil/verificacion** — envía verificación (sube documento a `verification-docs`, marca `pending`), muestra estado.
+- **Home / listados / ficha** — leen solo `listings` con `status = published`; ficha muestra badge "Vendedor verificado" si aplica; botón favoritos y reporte ya conectados a `favorites` / `listing_flags`; se registra `lead_event` al ver y al contactar.
 
-## 4. ProductCard y ficha con datos de confianza
+## 7. Fuera de alcance (explícito)
+Pagos, mensajería interna, notificaciones por email, moderación con IA, panel admin completo. Quedan preparados los datos y estados para añadirlos después.
 
-`ProductCard.tsx` añade fila compacta:
-- 📍 Zona · 🏷️ Estado · 🕒 "hace 2 días" (`date-fns` ya disponible).
-- Badge "Vendedor verificado" si aplica.
+## 8. Detalles técnicos
 
-`ProductDetail.tsx` añade bloque "Detalles del anuncio":
-- Ubicación (zona de La Paz), estado del producto, fecha de publicación, método(s) de entrega.
-- Bloque vendedor: avatar/inicial, nombre, badge verificado, miembro desde.
-- Botón **"Reportar anuncio"** → abre `Dialog` con motivos (Fraude, Producto prohibido, Spam, Otro) + textarea; guarda en estado local + toast.
-- Aviso de seguridad: "Nunca pagues por adelantado. Encuéntrate en lugar público."
+- Migraciones SQL con orden estricto: `CREATE TABLE` → `GRANT` → `ENABLE RLS` → `CREATE POLICY`.
+- Trigger `on_auth_user_created` que inserta en `profiles` y `seller_verifications (status='unverified')`.
+- Trigger `updated_at` en `listings`.
+- `mockProducts.ts` deja de usarse en las páginas conectadas; se mantiene solo como semilla opcional.
+- `src/integrations/supabase/client.ts` autogenerado por la integración.
+- Reemplazo de fetch de datos en `Index`, `Products`, `ProductDetail`, `Profile`, `Publish` por consultas a Supabase; tipos derivados del `Database` generado.
 
-## 5. Flujo de publicación con estados
-
-`Publish.tsx`:
-- Añadir campos: **Zona de La Paz** (select con zonas), **Estado del producto** (Nuevo/Como nuevo/Bueno/Aceptable), **Método de entrega** (checkboxes).
-- Al enviar: crear listing con `status: 'pending_review'` (mock) + toast "Tu anuncio está en revisión".
-- Botón "Guardar como borrador" → `status: 'draft'`.
-- Panel de reglas visibles antes del submit ("Prohibido…", "Publica fotos reales…").
-
-`Profile.tsx`: pestañas **Mis anuncios** con filtros por estado (Borrador / En revisión / Publicados / Rechazados) usando badges de color. Acción "Editar" y "Eliminar" (mock).
-
-## 6. Páginas legales mínimas
-
-Nuevas rutas en `App.tsx` + páginas simples con Layout, título, breadcrumb y contenido redactado localmente:
-- `/ayuda` — Ayuda (FAQ básica).
-- `/contacto` — Contacto (form básico mock + email).
-- `/privacidad` — Política de privacidad.
-- `/cookies` — Política de cookies.
-- `/acuerdo` — Acuerdo de usuario.
-- `/politicas` — Políticas de publicación (qué se puede/no publicar).
-
-Actualizar `Footer.tsx` para enlazar correctamente estas rutas.
-
-## 7. Página de categoría con SEO
-
-Reforzar `Products.tsx` (o nueva `/categoria/:slug`):
-- Breadcrumbs (`Inicio / Categoría`).
-- H1 claro por categoría ("Electrónica en La Paz").
-- Párrafo introductorio breve (2 líneas).
-- Bloque **FAQ** (accordion existente): 3 preguntas por categoría genérica.
-- `<Helmet>` con `title`/`description` por categoría (instalar `react-helmet-async`, provider en `main.tsx`).
-
-## 8. Señales de confianza globales
-
-- Badge "Vendedor verificado" reutilizable (`src/components/trust/VerifiedBadge.tsx`).
-- Banner discreto en home: "Chuquiago Market · Beta · Marketplace local de La Paz".
-- Aviso de seguridad reutilizable en ficha y home.
-
-## 9. Metadatos base
-
-- `index.html`: `<title>` y `<meta description>` reales orientados a La Paz + og tags.
-- Sin `og:image` custom (usa la del hosting) salvo que pases una URL.
-
----
-
-## Resumen de rutas nuevas
-`/ayuda`, `/contacto`, `/privacidad`, `/cookies`, `/acuerdo`, `/politicas`.
-
-## Fuera de alcance (para siguiente iteración)
-- Autenticación real, base de datos, subida real de imágenes, moderación real, chat comprador↔vendedor, pagos. Todo queda tipado y con UI preparada para conectarse a Lovable Cloud cuando lo pidas.
-
-¿Apruebas este plan para implementarlo?
+## 9. Entregable final
+Al terminar te explicaré: esquema real creado, políticas RLS por tabla, buckets y sus reglas, y qué pantalla escribe/lee cada tabla.
