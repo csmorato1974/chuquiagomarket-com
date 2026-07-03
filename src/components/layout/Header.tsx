@@ -12,6 +12,7 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { isStaff } = useRoles();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
