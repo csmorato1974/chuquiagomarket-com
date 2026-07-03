@@ -75,25 +75,37 @@ const Profile = () => {
 
           {visible.length > 0 ? (
             <div className="space-y-4">
-              {visible.map((p) => (
-                <div key={p.id} className="flex items-center gap-4 p-4 bg-card border rounded-xl">
-                  <img src={p.images[0]} alt={p.title} className="w-16 h-16 object-cover rounded-lg" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{p.title}</p>
-                    <p className="text-sm text-muted-foreground">{p.location} · {formatDate(p.createdAt)}</p>
+              {visible.map((p) => {
+                const highlight = p.status === 'pending_review' || p.status === 'rejected';
+                return (
+                  <div key={p.id} className="flex items-center gap-4 p-4 bg-card border rounded-xl">
+                    <img src={p.images[0]} alt={p.title} className="w-16 h-16 object-cover rounded-lg" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{p.title}</p>
+                      <p className="text-sm text-muted-foreground">{p.location} · {formatDate(p.createdAt)}</p>
+                    </div>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded ${STATUS_COLOR[p.status]}`}>{STATUS_LABEL[p.status]}</span>
+                    <div className="hidden sm:flex gap-2">
+                      <Button variant={highlight ? 'accent' : 'ghost'} size="sm" asChild>
+                        <Link to={`/anuncio/${p.id}/estado`}>{highlight ? 'Ver estado' : 'Ver'}</Link>
+                      </Button>
+                      <Button variant="ghost" size="sm" asChild><Link to={`/anuncio/${p.id}/editar`}>Editar</Link></Button>
+                    </div>
                   </div>
-                  <span className={`text-xs font-semibold px-2 py-1 rounded ${STATUS_COLOR[p.status]}`}>{STATUS_LABEL[p.status]}</span>
-                  <div className="hidden sm:flex gap-2">
-                    <Button variant="ghost" size="sm" asChild><Link to={`/anuncio/${p.id}/estado`}>Ver</Link></Button>
-                    <Button variant="ghost" size="sm" asChild><Link to={`/anuncio/${p.id}/editar`}>Editar</Link></Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+          ) : listings.length === 0 ? (
+            <div className="text-center py-16 bg-muted/50 rounded-2xl">
+              <User className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="font-medium mb-1">Aún no tienes anuncios</p>
+              <p className="text-sm text-muted-foreground mb-4">Publica tu primer producto y llega a compradores en La Paz.</p>
+              <Button variant="accent" asChild><Link to="/publicar"><Plus className="h-4 w-4" /> Publicar mi primer anuncio</Link></Button>
             </div>
           ) : (
             <div className="text-center py-16 bg-muted/50 rounded-2xl">
               <p className="text-muted-foreground mb-4">No hay anuncios con este estado</p>
-              <Button variant="accent" asChild><Link to="/publicar"><Plus className="h-4 w-4" /> Publicar anuncio</Link></Button>
+              <Button variant="outline" onClick={() => setFilter('all')}>Ver todos</Button>
             </div>
           )}
         </div>
