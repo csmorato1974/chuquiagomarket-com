@@ -1,83 +1,124 @@
-# Plan: Conectar Chuquiago Market a Lovable Cloud (backend real)
+# Plan: Endurecer beta para pruebas con usuarios semilla (v2)
 
-Convertimos la beta en un marketplace funcional con base de datos, autenticación, subida de imágenes, verificación de vendedores y seguridad por fila (RLS). Sin pagos.
+Sin nuevas features de negocio, sin cambios de diseño, sin pagos. Solo moderación, seguridad y trazabilidad.
 
-## 1. Activar Lovable Cloud
-Se habilita el backend gestionado (base de datos Postgres, Auth y Storage). No requiere cuentas externas.
+## 1. Vista operativa interna de moderación
 
-## 2. Autenticación
-- Email + contraseña (auto-confirm activado para beta, sin verificación de correo).
-- Página `/auth` conectada de verdad (hoy es mock): login, registro y logout.
-- Listener `onAuthStateChange` + `getUser()` para proteger rutas.
-- Al registrarse se crea `profiles` automáticamente vía trigger.
+Ruta nueva **`/admin/moderacion`**, protegida por `has_role(auth.uid(), 'admin' | 'moderator')`. Si no tiene rol → 404/redirect.
 
-## 3. Esquema de base de datos
+Tres pestañas simples, misma UI existente (tabs + tablas):
 
-### Tablas
-- **profiles** — 1 a 1 con `auth.users`. Campos: `id`, `display_name`, `avatar_url`, `zone`, `phone`, `bio`, `created_at`.
-- **user_roles** — tabla separada con enum `app_role` (`admin`, `moderator`, `user`). Nunca en profiles (evita escalada de privilegios).
-- **categories** — catálogo (`id`, `slug`, `name`, `description`, `sort_order`). Se siembra con las 6 categorías actuales.
-- **listings** — anuncio. Campos clave: `id`, `seller_id`, `category_id`, `title`, `description`, `price_bs` (numeric), `zone`, `condition`, `delivery_methods` (text[]), `status` (enum), `published_at`, `created_at`, `updated_at`, `cover_image_url`.
-- **listing_images** — múltiples imágenes por listing (`id`, `listing_id`, `path`, `sort_order`).
-- **listing_flags** — reportes (`id`, `listing_id`, `reporter_id`, `reason` enum, `note`, `created_at`, `status`).
-- **seller_verifications** — 1 por usuario (`user_id`, `status` enum `unverified|pending|verified|rejected`, `submitted_at`, `reviewed_at`, `notes`, `id_document_path`).
-- **favorites** — (`user_id`, `listing_id`, `created_at`), PK compuesta.
-- **lead_events** — analítica de interés (`id`, `listing_id`, `user_id` nullable, `type` enum `view|contact_click|whatsapp_click|favorite`, `created_at`).
+- **Anuncios pendientes** — `listings` con `status = 'pending_review'`. Acciones: Aprobar (→ `published`) o Rechazar (obliga elegir motivo estandarizado + nota opcional → `status = 'rejected'`).
+- **Reportes abiertos** — `listing_flags` con `status = 'open'`. Acciones: Resolver (motivo estandarizado) o Descartar. Enlace al anuncio.
+- **Verificaciones pendientes** — `seller_verifications` con `status = 'pending'`. Acciones: Aprobar (→ `verified`) o Rechazar (motivo + nota → `rejected`).
 
-### Enums
-`listing_status`: `draft | pending_review | published | paused | rejected | sold | archived`
-`listing_condition`: `new | like_new | good | fair`
-`flag_reason`: `fraud | prohibited | spam | other`
-`verification_status`: `unverified | pending | verified | rejected`
-`app_role`: `admin | moderator | user`
-`lead_type`: `view | contact_click | whatsapp_click | favorite`
+Cada fila incluye un botón **"Ver historial"** que abre un panel/drawer con las filas de `audit_log` del `entity_id` correspondiente (listing o seller_verification), ordenadas por `created_at desc`: quién, cuándo, de qué estado a qué estado, motivo y notas. En la pestaña de flags, el historial mostrado corresponde al listing reportado.
 
-### Función helper
-`public.has_role(_user_id uuid, _role app_role)` — SECURITY DEFINER, para políticas sin recursión.
+## 2. Primer anuncio siempre requiere revisión manual
 
-## 4. Row Level Security (todas las tablas)
+Trigger `BEFORE INSERT` en `listings`: si el seller **nunca** ha tenido un listing con `status IN ('published','sold','archived')` y el `NEW.status != 'draft'`, forzar `NEW.status = 'pending_review'`. Deja rastro en `audit_log` marcando `notes = 'first_listing_forced_review'`.
 
-- **profiles**: SELECT público (para mostrar nombre del vendedor); UPDATE solo dueño.
-- **categories**: SELECT público; escritura solo admin.
-- **listings**:
-  - SELECT público solo si `status = 'published'`.
-  - SELECT del propio seller para cualquier estado.
-  - SELECT total para admin/moderator.
-  - INSERT: `seller_id = auth.uid()`; el status permitido al crear es `draft` o `pending_review`.
-  - UPDATE/DELETE: solo el seller propietario (o admin).
-- **listing_images**: SELECT si el listing es visible para el usuario; INSERT/DELETE solo dueño del listing.
-- **listing_flags**: INSERT autenticado (`reporter_id = auth.uid()`); SELECT solo admin/moderator.
-- **seller_verifications**: SELECT/UPDATE propio dueño; admin puede cambiar `status`.
-- **favorites**: SELECT/INSERT/DELETE solo dueño (`user_id = auth.uid()`).
-- **lead_events**: INSERT abierto (incluye anon para `view`); SELECT solo admin y el seller del listing referenciado.
+La policy `listings_insert_own` ya limita a `draft|pending_review`, así que no hay riesgo de auto-publicación desde el cliente. El trigger es defensa en profundidad + auditoría explícita.
 
-Todas las tablas incluyen `GRANT` explícitos a `authenticated` / `service_role` (y `anon` solo en las de lectura pública).
+## 3. Motivos estandarizados de moderación
 
-## 5. Storage
-- Bucket **listing-images** público (lectura), con RLS de escritura por dueño: rutas `listings/{listing_id}/{uuid}.jpg`.
-- Bucket **verification-docs** privado: rutas `verifications/{user_id}/...`, solo dueño y admin acceden.
+Nuevos enums:
 
-## 6. Pantallas conectadas (mínimas)
+- `rejection_reason_code`: `low_quality_images | insufficient_info | prohibited_item | suspected_fraud | wrong_category | duplicate | price_unrealistic | other`.
+- `flag_resolution`: `removed | warned_seller | no_action | duplicate_report | invalid`.
+- `verification_rejection`: `document_illegible | document_mismatch | suspected_fraud | incomplete | other`.
 
-- **/auth** — login / registro reales.
-- **/perfil/anuncios** ("Mis anuncios") — lista del seller con filtros por estado (`draft`, `pending_review`, `published`, `paused`, `rejected`, `sold`, `archived`), badges de color y acciones: pausar, marcar vendido, archivar, editar, eliminar.
-- **/publicar** — ahora inserta en `listings` con `status = pending_review` o `draft`. Sube imágenes al bucket, crea filas en `listing_images`, la primera es `cover_image_url`.
-- **/anuncio/:id/editar** — edición si `seller_id = auth.uid()`. Al editar un `published` vuelve a `pending_review`.
-- **/anuncio/:id/estado** — vista de estado del anuncio para el seller: timeline (creado → en revisión → publicado / rechazado con motivo), estadísticas básicas de `lead_events`, acciones rápidas.
-- **/perfil/verificacion** — envía verificación (sube documento a `verification-docs`, marca `pending`), muestra estado.
-- **Home / listados / ficha** — leen solo `listings` con `status = published`; ficha muestra badge "Vendedor verificado" si aplica; botón favoritos y reporte ya conectados a `favorites` / `listing_flags`; se registra `lead_event` al ver y al contactar.
+Columnas nuevas (sin romper nada existente):
 
-## 7. Fuera de alcance (explícito)
-Pagos, mensajería interna, notificaciones por email, moderación con IA, panel admin completo. Quedan preparados los datos y estados para añadirlos después.
+- `listings.rejection_reason_code rejection_reason_code NULL` (nuevo enum).
+- `listings.rejection_notes text NULL` (nuevo campo libre). **No se toca `listings.rejection_reason`**: se mantiene tal cual para no romper el frontend actual. Cuando el admin rechaza, escribimos ambos: `rejection_notes` con las notas y `rejection_reason` (texto legado) con la etiqueta humana del código, para compatibilidad. El frontend puede migrar a `rejection_reason_code + rejection_notes` progresivamente; se deja `rejection_reason` marcada como legacy en comentario SQL.
+- `listing_flags.resolution flag_resolution NULL`, `listing_flags.resolved_by uuid NULL`, `listing_flags.resolved_at timestamptz NULL`. `listing_flags.status` acepta valores `open | resolved | dismissed` (ya es text; se documenta).
+- `seller_verifications.rejection_code verification_rejection NULL`.
 
-## 8. Detalles técnicos
+## 4. Anti-spam en `lead_events`
 
-- Migraciones SQL con orden estricto: `CREATE TABLE` → `GRANT` → `ENABLE RLS` → `CREATE POLICY`.
-- Trigger `on_auth_user_created` que inserta en `profiles` y `seller_verifications (status='unverified')`.
-- Trigger `updated_at` en `listings`.
-- `mockProducts.ts` deja de usarse en las páginas conectadas; se mantiene solo como semilla opcional.
-- `src/integrations/supabase/client.ts` autogenerado por la integración.
-- Reemplazo de fetch de datos en `Index`, `Products`, `ProductDetail`, `Profile`, `Publish` por consultas a Supabase; tipos derivados del `Database` generado.
+Trigger `BEFORE INSERT` en `lead_events` con `RETURN NULL` cuando detecta duplicado en ventana:
 
-## 9. Entregable final
-Al terminar te explicaré: esquema real creado, políticas RLS por tabla, buckets y sus reglas, y qué pantalla escribe/lee cada tabla.
+- `view`: 60 s
+- `favorite`: 10 s
+- `contact_click`, `whatsapp_click`: 30 s
+
+Clave de deduplicación: `(listing_id, type, coalesce(user_id::text, 'anon'))`. Para anon la ventana efectiva se reduce a 10 s (sin IP fiable, solo amortigua dobles clics).
+
+**Comportamiento con el frontend:** un trigger `BEFORE INSERT` que retorna `NULL` **cancela el INSERT sin lanzar error** — PostgREST devuelve `201` con `0` filas afectadas (o un array vacío si se usa `.select()`). El cliente no ve excepción. Se documenta en:
+
+- Comentario SQL en la función (`comment on function ... is 'Silently drops duplicates within short window; clients receive success with 0 rows'`).
+- Código de `ProductDetail.tsx` / donde se registren eventos: comentario breve explicando que un array vacío en respuesta es esperado y no debe tratarse como error.
+
+## 5. Endurecer policies de `storage.objects`
+
+**Bucket `listing-images`** (público a nivel de bucket, pero acceso controlado por policy):
+
+- DROP y recreación de policies.
+- SELECT anon/authenticated: solo si el listing referenciado por `(storage.foldername(name))[1]::uuid` está `status = 'published'`.
+- SELECT adicional para owner (`l.seller_id = auth.uid()`) y admin/moderator (para revisar drafts en la vista de moderación).
+- INSERT/UPDATE/DELETE: `bucket_id = 'listing-images'` AND `l.seller_id = auth.uid()` AND `owner = auth.uid()`.
+
+**Bucket `verification-docs`**:
+
+- Forzar `public = false` vía `supabase--storage_update_bucket`.
+- SELECT: solo `(storage.foldername(name))[1] = auth.uid()::text` o admin.
+- INSERT/UPDATE/DELETE: mismo criterio + `owner = auth.uid()`.
+- Ninguna policy anon.
+
+## 6. Log de auditoría mínimo
+
+Nueva tabla `public.audit_log`:
+
+- `id`, `actor_id uuid null`, `entity_type text` (`listing` | `seller_verification`), `entity_id uuid`, `from_status text`, `to_status text`, `reason_code text null`, `notes text null`, `created_at`.
+- RLS: SELECT solo admin/moderator (via `has_role`). No policy INSERT desde cliente; los triggers usan `SECURITY DEFINER`.
+- GRANT SELECT a `authenticated` (la policy filtra por rol), GRANT ALL a `service_role`.
+
+Triggers `SECURITY DEFINER`:
+
+- `AFTER INSERT` en `listings`: fila con `from_status = NULL`, `to_status = NEW.status`.
+- `AFTER UPDATE OF status` en `listings`: fila con `from_status`, `to_status`, `reason_code = NEW.rejection_reason_code`, `notes = NEW.rejection_notes`.
+- `AFTER UPDATE OF status` en `seller_verifications`: fila con `from_status`, `to_status`, `reason_code = NEW.rejection_code`, `notes = NEW.notes`.
+
+## 7. Índices
+
+Añadidos para soportar policies, joins de moderación y storage:
+
+- `listings (status, created_at desc)` — listado de `pending_review` en moderación.
+- `listings (seller_id, status)` — trigger primer-anuncio + "mis anuncios".
+- `listing_flags (status, created_at desc)` — pestaña flags abiertos.
+- `listing_flags (listing_id)` — join con listings en moderación.
+- `seller_verifications (status)` — pestaña verificaciones.
+- `lead_events (listing_id, type, user_id, created_at desc)` — dedupe + métricas de seller.
+- `listing_images (listing_id)` — verificar existente; crear si falta.
+- `audit_log (entity_type, entity_id, created_at desc)` — panel de historial.
+
+Índice sobre `storage.objects` no se toca (Supabase-gestionado); las policies usan `storage.foldername(name)[1]` que ya es rápido con el índice existente.
+
+## 8. Pantallas y código frontend
+
+- `src/pages/admin/Moderation.tsx` — nueva, 3 tabs, cada fila con acción principal + botón "Historial" (drawer/dialog que consulta `audit_log`).
+- `src/components/admin/AuditHistoryPanel.tsx` — nuevo, reutilizable, recibe `entityType` + `entityId`.
+- `src/App.tsx` — ruta `/admin/moderacion` protegida por rol.
+- `src/hooks/useRole.ts` — helper `useIsStaff()` que consulta `user_roles` una vez.
+- `Header.tsx` — enlace "Moderación" visible solo si staff.
+- `ListingStatus.tsx` — mostrar `rejection_reason_code` (etiqueta legible) + `rejection_notes` si existen; sigue leyendo `rejection_reason` como fallback.
+- Registro de `lead_events`: comentario explicando el comportamiento silencioso de dedupe.
+
+Sin rediseño: reutilizar tokens y componentes shadcn existentes.
+
+## 9. Migraciones (orden)
+
+1. Enums + columnas nuevas (`rejection_reason_code`, `rejection_notes`, `resolution`, `resolved_by`, `resolved_at`, `rejection_code`). **No se renombra ni borra `rejection_reason`.**
+2. Índices nuevos.
+3. Tabla `audit_log` + GRANTS + RLS + triggers de auditoría.
+4. Trigger primer-anuncio en `listings`.
+5. Trigger dedupe `lead_events`.
+6. DROP + CREATE policies en `storage.objects` para ambos buckets.
+7. `supabase--storage_update_bucket` para `verification-docs` privado.
+
+## 10. Fuera de alcance
+Rediseño, pagos, notificaciones por email, panel admin completo, rate limiting por IP real, validación de mime/tamaño en Storage.
+
+## 11. Entregable
+Al terminar te explicaré: enums/columnas/índices añadidos, triggers creados (con la nota de comportamiento silencioso del dedupe), políticas finales de `storage.objects` por bucket, y la vista `/admin/moderacion` con sus tres listas y el panel de historial.
