@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { CATEGORIES, Condition, DeliveryMethod } from '@/types/marketplace';
+import { CATEGORIES, Condition, DeliveryMethod, ListingStatus } from '@/types/marketplace';
 import { LA_PAZ_ZONES, CONDITION_LABEL, DELIVERY_LABEL } from '@/lib/format';
-import { Camera, Upload, Check, Info, Save } from 'lucide-react';
+import { Upload, Info, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import ImagePicker from '@/components/publish/ImagePicker';
 
 const CONDITIONS: Condition[] = ['new', 'like_new', 'good', 'fair'];
 const DELIVERIES: DeliveryMethod[] = ['pickup', 'delivery_lapaz', 'shipping_bo'];
