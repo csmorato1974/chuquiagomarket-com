@@ -9,6 +9,12 @@ import ProductDetail from "./pages/ProductDetail";
 import Publish from "./pages/Publish";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
+import Help from "./pages/Help";
+import Contact from "./pages/Contact";
+import Privacy from "./pages/Privacy";
+import Cookies from "./pages/Cookies";
+import Terms from "./pages/Terms";
+import Policies from "./pages/Policies";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,7 +32,12 @@ const App = () => (
           <Route path="/publicar" element={<Publish />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/perfil" element={<Profile />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/ayuda" element={<Help />} />
+          <Route path="/contacto" element={<Contact />} />
+          <Route path="/privacidad" element={<Privacy />} />
+          <Route path="/cookies" element={<Cookies />} />
+          <Route path="/acuerdo" element={<Terms />} />
+          <Route path="/politicas" element={<Policies />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
