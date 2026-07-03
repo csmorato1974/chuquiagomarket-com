@@ -3,12 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Search, ChevronDown, Bell, ShoppingCart, Menu, X, User, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { CATEGORIES } from '@/types/marketplace';
+import { useAuth } from '@/hooks/useAuth';
 import logo from '@/assets/logo.png';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
