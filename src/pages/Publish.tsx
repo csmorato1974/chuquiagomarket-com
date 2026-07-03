@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { CATEGORIES, Condition, DeliveryMethod } from '@/types/marketplace';
+import { CATEGORIES, Condition, DeliveryMethod, ListingStatus } from '@/types/marketplace';
 import { LA_PAZ_ZONES, CONDITION_LABEL, DELIVERY_LABEL } from '@/lib/format';
-import { Camera, Upload, Check, Info, Save } from 'lucide-react';
+import { Upload, Info, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import ImagePicker from '@/components/publish/ImagePicker';
 
 const CONDITIONS: Condition[] = ['new', 'like_new', 'good', 'fair'];
 const DELIVERIES: DeliveryMethod[] = ['pickup', 'delivery_lapaz', 'shipping_bo'];
@@ -102,7 +103,7 @@ const Publish = ({ editingId }: Props) => {
       if (editingId) {
         // Editing a published listing sends it back to review.
         const { data: existing } = await supabase.from('listings').select('status').eq('id', editingId).maybeSingle();
-        const nextStatus = existing?.status === 'published' ? 'pending_review' : status;
+        const nextStatus: ListingStatus = existing?.status === 'published' ? 'pending_review' : status;
         const { error } = await supabase.from('listings').update({ ...payload, status: nextStatus }).eq('id', editingId);
         if (error) throw error;
       } else {
@@ -149,23 +150,13 @@ const Publish = ({ editingId }: Props) => {
           <form onSubmit={(e) => { e.preventDefault(); persist('pending_review'); }} className="space-y-6">
             <div>
               <Label className="text-base">Foto del producto</Label>
-              <div className="mt-2">
-                <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-input rounded-xl cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors overflow-hidden">
-                  {form.image ? (
-                    <div className="flex items-center gap-2 text-primary"><Check className="h-6 w-6" /><span className="font-medium">{form.image.name}</span></div>
-                  ) : existingCover ? (
-                    <img src={existingCover} alt="" className="h-full w-full object-contain" />
-                  ) : (
-                    <div className="flex flex-col items-center text-muted-foreground">
-                      <Camera className="h-12 w-12 mb-2" />
-                      <span className="font-medium">Haz clic para subir una foto</span>
-                      <span className="text-sm">PNG, JPG hasta 10MB</span>
-                    </div>
-                  )}
-                  <input type="file" className="hidden" accept="image/*" onChange={(e) => setForm({ ...form, image: e.target.files?.[0] || null })} />
-                </label>
-              </div>
+              <ImagePicker
+                value={form.image}
+                onChange={(f) => setForm({ ...form, image: f })}
+                existingUrl={existingCover}
+              />
             </div>
+
 
             <div>
               <Label htmlFor="title" className="text-base">Título</Label>

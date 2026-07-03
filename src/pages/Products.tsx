@@ -99,7 +99,21 @@ const Products = () => {
           )}
 
           <div className="flex-1">
-            <ProductGrid products={products} emptyMessage="No hay anuncios con estos filtros" />
+            {products.length === 0 ? (
+              <div className="text-center py-16 bg-muted/50 rounded-2xl">
+                <p className="font-medium mb-1">Sin resultados</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {hasActive ? 'Prueba limpiando los filtros o busca otra categoría.' : 'Aún no hay anuncios publicados. Estamos en beta cerrada.'}
+                </p>
+                {hasActive ? (
+                  <Button variant="outline" onClick={clearFilters}>Limpiar filtros</Button>
+                ) : (
+                  <Button variant="accent" asChild><a href="/publicar">Publicar el primero</a></Button>
+                )}
+              </div>
+            ) : (
+              <ProductGrid products={products} emptyMessage="No hay anuncios con estos filtros" />
+            )}
             {currentCategory && (
               <section className="mt-12 pt-8 border-t">
                 <h2 className="text-xl font-bold mb-4">Preguntas frecuentes sobre {currentCategory.name}</h2>

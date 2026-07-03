@@ -25,19 +25,21 @@ const ListingStatusPage = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [row, setRow] = useState<Row | null>(null);
-  const [stats, setStats] = useState({ view: 0, contact_click: 0, favorite: 0 });
+  const [stats, setStats] = useState<Record<'view' | 'contact_click' | 'favorite', number>>({ view: 0, contact_click: 0, favorite: 0 });
 
-  useEffect(() => {
+  const load = async () => {
     if (!id) return;
-    (async () => {
-      const { data } = await supabase.from('listings').select('id,title,status,created_at,published_at,rejection_reason,rejection_reason_code,rejection_notes,seller_id').eq('id', id).maybeSingle();
-      setRow(data as Row | null);
-      const { data: events } = await supabase.from('lead_events').select('type').eq('listing_id', id);
-      const s = { view: 0, contact_click: 0, favorite: 0 };
-      (events ?? []).forEach((e: { type: string }) => { if (e.type in s) (s as any)[e.type]++; });
-      setStats(s);
-    })();
-  }, [id]);
+    const { data } = await supabase.from('listings').select('id,title,status,created_at,published_at,rejection_reason,rejection_reason_code,rejection_notes,seller_id').eq('id', id).maybeSingle();
+    setRow(data as Row | null);
+    const { data: events } = await supabase.from('lead_events').select('type').eq('listing_id', id);
+    const s: Record<'view' | 'contact_click' | 'favorite', number> = { view: 0, contact_click: 0, favorite: 0 };
+    (events ?? []).forEach((e: { type: string }) => {
+      if (e.type === 'view' || e.type === 'contact_click' || e.type === 'favorite') s[e.type]++;
+    });
+    setStats(s);
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [id]);
 
   if (!row) return <Layout><div className="container-market py-12">Cargando…</div></Layout>;
   if (user && row.seller_id !== user.id) return <Layout><div className="container-market py-12">No autorizado.</div></Layout>;
@@ -45,6 +47,16 @@ const ListingStatusPage = () => {
   const setStatus = async (status: ListingStatus) => {
     await supabase.from('listings').update({ status }).eq('id', row.id);
     setRow({ ...row, status });
+  };
+
+  const resubmit = async () => {
+    await supabase.from('listings').update({
+      status: 'pending_review',
+      rejection_reason: null,
+      rejection_reason_code: null,
+      rejection_notes: null,
+    }).eq('id', row.id);
+    await load();
   };
 
   return (
@@ -110,6 +122,7 @@ const ListingStatusPage = () => {
 
         <section className="mt-8 flex flex-wrap gap-2">
           <Button asChild variant="outline"><Link to={`/anuncio/${row.id}/editar`}>Editar</Link></Button>
+          {row.status === 'rejected' && <Button onClick={resubmit}>Reenviar a revisión</Button>}
           {row.status === 'published' && <Button variant="outline" onClick={() => setStatus('paused')}>Pausar</Button>}
           {row.status === 'paused' && <Button variant="outline" onClick={() => setStatus('published')}>Reanudar</Button>}
           {row.status === 'published' && <Button variant="outline" onClick={() => setStatus('sold')}>Marcar como vendido</Button>}

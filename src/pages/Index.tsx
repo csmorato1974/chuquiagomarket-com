@@ -60,7 +60,9 @@ const Index = () => {
             <ProductGrid products={recent} />
           ) : (
             <div className="text-center py-16 bg-muted/50 rounded-2xl">
-              <p className="text-muted-foreground mb-4">Aún no hay anuncios publicados.</p>
+              <Camera className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="font-medium mb-1">Aún no hay anuncios publicados</p>
+              <p className="text-sm text-muted-foreground mb-4">Estamos en beta cerrada. Los primeros anuncios llegarán pronto.</p>
               <Link to="/publicar" className="text-primary font-medium hover:underline">Sé el primero en publicar</Link>
             </div>
           )}
