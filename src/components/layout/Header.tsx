@@ -29,7 +29,11 @@ const Header = () => {
           <div className="flex h-9 items-center justify-between text-sm">
             <div className="flex items-center gap-4">
               <span className="text-muted-foreground">
-                ¡Hola! <Link to="/auth" className="text-primary hover:underline font-medium">Inicia sesión</Link> o <Link to="/auth" className="text-primary hover:underline font-medium">regístrate</Link>
+                {user ? (
+                  <>Hola, <Link to="/perfil" className="text-primary hover:underline font-medium">mi cuenta</Link> · <button onClick={() => signOut()} className="text-primary hover:underline font-medium">salir</button></>
+                ) : (
+                  <>¡Hola! <Link to="/auth" className="text-primary hover:underline font-medium">Inicia sesión</Link> o <Link to="/auth" className="text-primary hover:underline font-medium">regístrate</Link></>
+                )}
               </span>
             </div>
             <div className="hidden md:flex items-center gap-4">
