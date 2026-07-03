@@ -27,6 +27,14 @@ const ReportButton = ({ listingId }: { listingId: string }) => {
   const submit = async () => {
     if (!user) return toast.error('Inicia sesión para reportar');
     setSubmitting(true);
+    const { data: existing } = await supabase.from('listing_flags')
+      .select('id').eq('listing_id', listingId).eq('reporter_id', user.id).eq('status', 'open').maybeSingle();
+    if (existing) {
+      setSubmitting(false);
+      toast.info('Ya tienes un reporte abierto para este anuncio.');
+      setOpen(false);
+      return;
+    }
     const { error } = await supabase.from('listing_flags').insert({
       listing_id: listingId, reporter_id: user.id, reason, note: note || null,
     });
