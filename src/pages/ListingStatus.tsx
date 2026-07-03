@@ -55,10 +55,17 @@ const ListingStatusPage = () => {
           {STATUS_LABEL[row.status]}
         </span>
 
-        {row.status === 'rejected' && row.rejection_reason && (
+        {row.status === 'rejected' && (row.rejection_reason_code || row.rejection_notes || row.rejection_reason) && (
           <div className="mt-4 p-4 border border-destructive/40 rounded-xl bg-destructive/5">
             <div className="flex items-center gap-2 font-semibold text-destructive mb-1"><XCircle className="h-5 w-5" />Rechazado</div>
-            <p className="text-sm">{row.rejection_reason}</p>
+            {row.rejection_reason_code && (
+              <p className="text-sm font-medium">{REJECTION_REASONS[row.rejection_reason_code] ?? row.rejection_reason_code}</p>
+            )}
+            {row.rejection_notes ? (
+              <p className="text-sm text-muted-foreground mt-1">{row.rejection_notes}</p>
+            ) : (!row.rejection_reason_code && row.rejection_reason && (
+              <p className="text-sm">{row.rejection_reason}</p>
+            ))}
           </div>
         )}
 
