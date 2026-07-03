@@ -42,6 +42,7 @@ const Header = () => {
               <Link to="/productos" className="nav-link">Ofertas del día</Link>
               <Link to="/publicar" className="nav-link">Vender</Link>
               <Link to="#" className="nav-link">Ayuda</Link>
+              {isStaff && <Link to="/admin/moderacion" className="nav-link text-primary font-semibold">Moderación</Link>}
             </div>
           </div>
         </div>
