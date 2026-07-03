@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          from_status: string | null
+          id: string
+          notes: string | null
+          reason_code: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          reason_code?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          reason_code?: string | null
+          to_status?: string | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -107,6 +143,9 @@ export type Database = {
           note: string | null
           reason: Database["public"]["Enums"]["flag_reason"]
           reporter_id: string | null
+          resolution: Database["public"]["Enums"]["flag_resolution"] | null
+          resolved_at: string | null
+          resolved_by: string | null
           status: string
         }
         Insert: {
@@ -116,6 +155,9 @@ export type Database = {
           note?: string | null
           reason: Database["public"]["Enums"]["flag_reason"]
           reporter_id?: string | null
+          resolution?: Database["public"]["Enums"]["flag_resolution"] | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           status?: string
         }
         Update: {
@@ -125,6 +167,9 @@ export type Database = {
           note?: string | null
           reason?: Database["public"]["Enums"]["flag_reason"]
           reporter_id?: string | null
+          resolution?: Database["public"]["Enums"]["flag_resolution"] | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           status?: string
         }
         Relationships: [
@@ -180,7 +225,11 @@ export type Database = {
           id: string
           price_bs: number
           published_at: string | null
+          rejection_notes: string | null
           rejection_reason: string | null
+          rejection_reason_code:
+            | Database["public"]["Enums"]["rejection_reason_code"]
+            | null
           seller_id: string
           status: Database["public"]["Enums"]["listing_status"]
           title: string
@@ -197,7 +246,11 @@ export type Database = {
           id?: string
           price_bs?: number
           published_at?: string | null
+          rejection_notes?: string | null
           rejection_reason?: string | null
+          rejection_reason_code?:
+            | Database["public"]["Enums"]["rejection_reason_code"]
+            | null
           seller_id: string
           status?: Database["public"]["Enums"]["listing_status"]
           title: string
@@ -214,7 +267,11 @@ export type Database = {
           id?: string
           price_bs?: number
           published_at?: string | null
+          rejection_notes?: string | null
           rejection_reason?: string | null
+          rejection_reason_code?:
+            | Database["public"]["Enums"]["rejection_reason_code"]
+            | null
           seller_id?: string
           status?: Database["public"]["Enums"]["listing_status"]
           title?: string
@@ -269,6 +326,9 @@ export type Database = {
           created_at: string
           id_document_path: string | null
           notes: string | null
+          rejection_code:
+            | Database["public"]["Enums"]["verification_rejection"]
+            | null
           reviewed_at: string | null
           status: Database["public"]["Enums"]["verification_status"]
           submitted_at: string | null
@@ -279,6 +339,9 @@ export type Database = {
           created_at?: string
           id_document_path?: string | null
           notes?: string | null
+          rejection_code?:
+            | Database["public"]["Enums"]["verification_rejection"]
+            | null
           reviewed_at?: string | null
           status?: Database["public"]["Enums"]["verification_status"]
           submitted_at?: string | null
@@ -289,6 +352,9 @@ export type Database = {
           created_at?: string
           id_document_path?: string | null
           notes?: string | null
+          rejection_code?:
+            | Database["public"]["Enums"]["verification_rejection"]
+            | null
           reviewed_at?: string | null
           status?: Database["public"]["Enums"]["verification_status"]
           submitted_at?: string | null
@@ -334,6 +400,12 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user"
       flag_reason: "fraud" | "prohibited" | "spam" | "other"
+      flag_resolution:
+        | "removed"
+        | "warned_seller"
+        | "no_action"
+        | "duplicate_report"
+        | "invalid"
       lead_type: "view" | "contact_click" | "whatsapp_click" | "favorite"
       listing_condition: "new" | "like_new" | "good" | "fair"
       listing_status:
@@ -344,6 +416,21 @@ export type Database = {
         | "rejected"
         | "sold"
         | "archived"
+      rejection_reason_code:
+        | "low_quality_images"
+        | "insufficient_info"
+        | "prohibited_item"
+        | "suspected_fraud"
+        | "wrong_category"
+        | "duplicate"
+        | "price_unrealistic"
+        | "other"
+      verification_rejection:
+        | "document_illegible"
+        | "document_mismatch"
+        | "suspected_fraud"
+        | "incomplete"
+        | "other"
       verification_status: "unverified" | "pending" | "verified" | "rejected"
     }
     CompositeTypes: {
@@ -474,6 +561,13 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user"],
       flag_reason: ["fraud", "prohibited", "spam", "other"],
+      flag_resolution: [
+        "removed",
+        "warned_seller",
+        "no_action",
+        "duplicate_report",
+        "invalid",
+      ],
       lead_type: ["view", "contact_click", "whatsapp_click", "favorite"],
       listing_condition: ["new", "like_new", "good", "fair"],
       listing_status: [
@@ -484,6 +578,23 @@ export const Constants = {
         "rejected",
         "sold",
         "archived",
+      ],
+      rejection_reason_code: [
+        "low_quality_images",
+        "insufficient_info",
+        "prohibited_item",
+        "suspected_fraud",
+        "wrong_category",
+        "duplicate",
+        "price_unrealistic",
+        "other",
+      ],
+      verification_rejection: [
+        "document_illegible",
+        "document_mismatch",
+        "suspected_fraud",
+        "incomplete",
+        "other",
       ],
       verification_status: ["unverified", "pending", "verified", "rejected"],
     },
