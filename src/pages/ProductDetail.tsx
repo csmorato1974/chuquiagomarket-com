@@ -27,6 +27,9 @@ const ProductDetail = () => {
       const p = await fetchListingById(id);
       setProduct(p); setLoading(false);
       if (p) {
+        // NOTE: lead_events tiene un trigger BEFORE INSERT que descarta duplicados en ventanas cortas
+        // (view: 60s, favorite: 10s, contact/whatsapp: 30s). Un "duplicado" retorna éxito sin filas,
+        // no genera error en el cliente. Es esperado.
         supabase.from('lead_events').insert({ listing_id: id, user_id: user?.id ?? null, type: 'view' });
       }
       if (user && id) {
