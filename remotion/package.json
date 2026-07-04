@@ -7,6 +7,16 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.484",
+    "@remotion/cli": "^4.0.484",
+    "@remotion/compositor-linux-x64-musl": "^4.0.484",
+    "@remotion/renderer": "^4.0.484",
+    "@types/react": "18",
+    "react": "18",
+    "react-dom": "18",
+    "remotion": "^4.0.484"
   }
 }
