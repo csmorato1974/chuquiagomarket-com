@@ -1,23 +1,25 @@
-## Plan: Restaurar imagen estática en el hero
+## Plan: Aviso de inicio de sesión para contactar al vendedor
 
 ### Contexto
-Actualmente `src/components/home/HeroSection.tsx` muestra un video animado (`hero-loop.mp4`) encima de la imagen original `hero-banner.jpg`. El usuario quiere eliminar el video y dejar solo la imagen de fondo original.
+Actualmente en la ficha de producto (`/producto/:id`) el botón "Contactar por WhatsApp" funciona para usuarios anónimos: abre WhatsApp directamente. Se solicita añadir un aviso que indique que se debe iniciar sesión para contactar al vendedor.
 
 ### Cambios propuestos
-1. **Eliminar el video del hero** (`src/components/home/HeroSection.tsx`):
-   - Quitar el bloque `<video>` y su `<source>`.
-   - Quitar el estado `reducedMotion` y el `useEffect` de `prefers-reduced-motion` (ya no hacen falta).
-   - Quitar la importación de `hero-loop.mp4.asset.json`.
-   - Mantener la imagen de fondo `hero-banner.jpg` y el degradado overlay.
-   - Mantener el texto, botones y el badge "La Paz · Beta".
 
-2. **Limpiar el asset pointer sin uso** (`src/assets/hero-loop.mp4.asset.json`):
-   - Eliminar el archivo porque el video ya no se referenciará en la app.
+1. **Ficha de producto (`src/pages/ProductDetail.tsx`)**
+   - Cuando el usuario no ha iniciado sesión, el botón principal cambiará a "Inicia sesión para contactar".
+   - Al hacer clic, redirigirá a `/auth` enviando como destino de retorno la URL actual del producto (`/producto/:id`).
+   - Se añadirá un aviso inline debajo del botón con el texto: "Debes iniciar sesión para contactar al vendedor por WhatsApp." y un enlace a iniciar sesión.
+   - Para usuarios logueados se conserva el comportamiento actual: abre el enlace de WhatsApp del vendedor.
 
-### Fuera de alcance
-- No se modifica `remotion/src/Root.tsx` ni el script de render (pueden quedar como proyecto de video independiente, pero no se usan en la web).
-- No se cambian colores, tipografía, layout ni contenido del hero.
-- No se afecta la lógica de negocio ni otras páginas.
+2. **Página de autenticación (`src/pages/Auth.tsx`)**
+   - Se verifica que el flujo de redirección post-login utilice el valor `state.from` enviado desde la ficha de producto, para devolver al usuario al anuncio tras autenticarse.
+   - Si no existe destino previo, se mantiene el comportamiento actual (`/perfil`).
 
-### Resultado esperado
-El hero vuelve a mostrar solo la foto original de La Paz con el degradado y el texto, sin reproducción de video.
+3. **Verificación**
+   - Comprobación de build sin errores.
+   - Navegación manual en preview: usuario anónimo → ficha de producto → clic en contactar → login → retorno al producto y botón de WhatsApp funcional.
+
+### Notas técnicas
+- No se toca lógica de negocio, pagos ni backend.
+- Se usan componentes existentes (`Button`, `Alert`) y estilos del proyecto.
+- Se respeta la regla mobile-first: aviso inline siempre visible, no tooltip.
