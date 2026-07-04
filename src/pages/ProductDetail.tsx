@@ -71,6 +71,40 @@ const ProductDetail = () => {
       .then(() => undefined, () => undefined);
   };
 
+  const onShare = async () => {
+    if (!product) return;
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    const shareData = {
+      title: product.title,
+      text: `${product.title} — ${formatBs(product.price)} en Chuquiago Market`,
+      url,
+    };
+    const logShare = () => {
+      if (!id) return;
+      void supabase
+        .from('lead_events')
+        .insert({ listing_id: id, user_id: user?.id ?? null, type: 'share' as never })
+        .then(() => undefined, () => undefined);
+    };
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        await navigator.share(shareData);
+        logShare();
+        return;
+      }
+    } catch (err) {
+      if ((err as DOMException)?.name === 'AbortError') return;
+      // continúa al fallback
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Enlace copiado al portapapeles');
+      logShare();
+    } catch {
+      toast.error('No se pudo compartir el enlace');
+    }
+  };
+
   if (loading) return <Layout><div className="container-market py-12">Cargando…</div></Layout>;
   if (!product) return (
     <Layout>
