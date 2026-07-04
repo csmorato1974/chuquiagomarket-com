@@ -52,7 +52,9 @@ const Publish = ({ editingId }: Props) => {
         description: data.description ?? '',
         image: null,
       });
-      setExistingCover(data.cover_image_url);
+      if (data.cover_image_url) {
+        setExistingCover(await signedImageUrl(data.cover_image_url));
+      }
     })();
   }, [editingId]);
 
@@ -74,7 +76,7 @@ const Publish = ({ editingId }: Props) => {
     const { error } = await supabase.storage.from('listing-images').upload(path, form.image);
     if (error) throw error;
     await supabase.from('listing_images').insert({ listing_id: listingId, path, sort_order: 0 });
-    return supabase.storage.from('listing-images').getPublicUrl(path).data.publicUrl;
+    return path;
   };
 
   const persist = async (status: 'draft' | 'pending_review') => {
