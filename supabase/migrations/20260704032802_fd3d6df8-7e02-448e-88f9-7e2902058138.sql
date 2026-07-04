@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "listing_images_read" ON storage.objects;
