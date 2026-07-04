@@ -65,6 +65,54 @@ const Profile = () => {
     toast.success('Teléfono guardado');
   };
 
+  const onPickFile = () => fileInputRef.current?.click();
+
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !user) return;
+    const check = validateAvatarFile(file);
+    if (!check.ok) return toast.error(check.error!);
+    const localPreview = URL.createObjectURL(file);
+    setPreviewUrl(localPreview);
+    setUploadingAvatar(true);
+    try {
+      const oldPath = avatarPath;
+      const path = await uploadAvatar(user.id, file);
+      const { error } = await supabase.from('profiles').update({ avatar_url: path }).eq('id', user.id);
+      if (error) throw error;
+      setAvatarPath(path);
+      setAvatarUrl(await getAvatarSignedUrl(path));
+      if (oldPath && oldPath !== path) await removeAvatar(oldPath);
+      toast.success('Foto actualizada');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo subir la imagen');
+    } finally {
+      setPreviewUrl(null);
+      URL.revokeObjectURL(localPreview);
+      setUploadingAvatar(false);
+    }
+  };
+
+  const onRemoveAvatar = async () => {
+    if (!user || !avatarPath) return;
+    setUploadingAvatar(true);
+    try {
+      const { error } = await supabase.from('profiles').update({ avatar_url: null }).eq('id', user.id);
+      if (error) throw error;
+      await removeAvatar(avatarPath);
+      setAvatarPath(null);
+      setAvatarUrl(null);
+      toast.success('Foto eliminada');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo eliminar la imagen');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const shownAvatar = previewUrl ?? avatarUrl;
+
   const visible = filter === 'all' ? listings : listings.filter((p) => p.status === filter);
   const joinedAt = user?.created_at ? new Date(user.created_at) : new Date();
 
