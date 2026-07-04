@@ -1,42 +1,14 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ShieldCheck, MapPin } from 'lucide-react';
 import heroBanner from '@/assets/hero-banner.jpg';
-import heroLoop from '@/assets/hero-loop.mp4.asset.json';
 
 const HeroSection = () => {
-  const [reducedMotion, setReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReducedMotion(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-
   return (
     <section className="relative w-full">
       <div className="relative w-full min-h-[380px] md:min-h-[460px] overflow-hidden bg-cover bg-center"
         style={{ backgroundImage: `url(${heroBanner})` }}
       >
-        {/* Video de fondo animado */}
-        {!reducedMotion && (
-          <video
-            aria-hidden
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            poster={heroBanner}
-            className="absolute inset-0 w-full h-full object-cover"
-          >
-            <source src={heroLoop.url} type="video/mp4" />
-          </video>
-        )}
-
         {/* Overlay legible sin cubrir la foto */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
 
