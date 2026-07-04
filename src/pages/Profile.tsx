@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { ListingStatus, Product } from '@/types/marketplace';
 import { STATUS_LABEL, STATUS_COLOR, formatDate } from '@/lib/format';
 import VerifiedBadge from '@/components/trust/VerifiedBadge';
-import { User, Mail, Calendar, Plus, Settings, BadgeCheck } from 'lucide-react';
+import { User, Mail, Calendar, Plus, Settings, BadgeCheck, Phone } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchMyListings } from '@/lib/listings';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizePhone, isValidPhone } from '@/lib/whatsapp';
+import { toast } from 'sonner';
 
 const STATUSES: (ListingStatus | 'all')[] = ['all','published','pending_review','draft','paused','sold','rejected','archived'];
 
@@ -18,20 +22,38 @@ const Profile = () => {
   const [listings, setListings] = useState<Product[]>([]);
   const [displayName, setDisplayName] = useState('');
   const [verified, setVerified] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [savingPhone, setSavingPhone] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       const [{ data: prof }, { data: verif }, mine] = await Promise.all([
-        supabase.from('profiles').select('display_name').eq('id', user.id).maybeSingle(),
+        supabase.from('profiles').select('display_name, whatsapp_phone').eq('id', user.id).maybeSingle(),
         supabase.from('seller_verifications').select('status').eq('user_id', user.id).maybeSingle(),
         fetchMyListings(),
       ]);
       setDisplayName(prof?.display_name || user.email?.split('@')[0] || 'Usuario');
+      setPhone((prof as { whatsapp_phone?: string | null } | null)?.whatsapp_phone ?? '');
       setVerified(verif?.status === 'verified');
       setListings(mine);
     })();
   }, [user]);
+
+  const savePhone = async () => {
+    if (!user) return;
+    const normalized = normalizePhone(phone);
+    if (!isValidPhone(normalized)) {
+      toast.error('Teléfono inválido. Usa formato internacional (8–15 dígitos).');
+      return;
+    }
+    setSavingPhone(true);
+    const { error } = await supabase.from('profiles').update({ whatsapp_phone: normalized }).eq('id', user.id);
+    setSavingPhone(false);
+    if (error) return toast.error(error.message);
+    setPhone(normalized);
+    toast.success('Teléfono guardado');
+  };
 
   const visible = filter === 'all' ? listings : listings.filter((p) => p.status === filter);
   const joinedAt = user?.created_at ? new Date(user.created_at) : new Date();
@@ -60,6 +82,31 @@ const Profile = () => {
               <Button variant="accent" asChild><Link to="/publicar"><Plus className="h-4 w-4" /> Nuevo anuncio</Link></Button>
             </div>
           </div>
+        </div>
+
+        <div className="bg-card rounded-2xl border p-6 mb-8">
+          <div className="flex items-center gap-2 mb-1">
+            <Phone className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-bold">Datos de contacto</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Los compradores te contactarán por WhatsApp. Obligatorio para publicar o editar anuncios.
+          </p>
+          <Label htmlFor="wa" className="text-sm">Teléfono WhatsApp (formato internacional)</Label>
+          <div className="flex gap-2 mt-2">
+            <Input
+              id="wa"
+              inputMode="tel"
+              placeholder="59171234567"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              maxLength={20}
+            />
+            <Button onClick={savePhone} disabled={savingPhone}>Guardar</Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Solo dígitos, sin “+”, espacios ni guiones. Ejemplo Bolivia: 59171234567.
+          </p>
         </div>
 
         <div>
