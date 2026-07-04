@@ -196,16 +196,4 @@
   animation: slideIn 0.5s ease-out;
 }
 
-/* Hero Ken Burns effect */
-@keyframes kenburns {
-  0% { transform: scale(1) translate3d(0, 0, 0); }
-  100% { transform: scale(1.08) translate3d(-1.5%, 1%, 0); }
-}
-.hero-kenburns {
-  animation: kenburns 20s ease-in-out infinite alternate;
-  transform-origin: center;
-  will-change: transform;
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-kenburns { animation: none; }
-}
+
