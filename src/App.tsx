@@ -9,6 +9,8 @@ import ProductDetail from "./pages/ProductDetail";
 import SellerProfile from "./pages/SellerProfile";
 import Publish from "./pages/Publish";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import EditListing from "./pages/EditListing";
 import ListingStatusPage from "./pages/ListingStatus";
@@ -44,6 +46,8 @@ const App = () => (
           <Route path="/producto/:id" element={<ProductDetail />} />
           <Route path="/vendedor/:sellerId" element={<SellerProfile />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/recuperar" element={<ForgotPassword />} />
+          <Route path="/restablecer" element={<ResetPassword />} />
           <Route path="/publicar" element={<Protected><Publish /></Protected>} />
           <Route path="/perfil" element={<Protected><Profile /></Protected>} />
           <Route path="/perfil/verificacion" element={<Protected><Verification /></Protected>} />
