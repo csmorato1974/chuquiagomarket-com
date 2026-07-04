@@ -1,15 +1,13 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Product, ListingStatus, Condition, DeliveryMethod } from '@/types/marketplace';
+import { Product, ListingStatus, Condition, DeliveryMethod, SellerPublic } from '@/types/marketplace';
 
 const SIGN_TTL_SECONDS = 60 * 60; // 1h
 
-/** Normalize any legacy full URL into just the storage path. */
 export function toStoragePath(value: string): string {
   const m = value.match(/\/listing-images\/(.+)$/);
   return m ? m[1] : value;
 }
 
-/** Sign a single storage path in the listing-images bucket. Returns placeholder on failure. */
 export async function signedImageUrl(pathOrUrl: string): Promise<string> {
   if (!pathOrUrl) return '/placeholder.svg';
   const path = toStoragePath(pathOrUrl);
@@ -39,9 +37,11 @@ type Row = {
   published_at: string | null;
   created_at: string;
   category_id: string | null;
+  pickup_address?: string | null;
+  pickup_maps_url?: string | null;
   categories?: { slug: string; name: string } | null;
   listing_images?: { path: string; sort_order: number }[];
-  profiles?: { display_name: string } | null;
+  profiles?: { display_name: string; whatsapp_phone: string | null } | null;
   seller_verifications?: { status: string } | null;
 };
 
@@ -56,6 +56,7 @@ function baseMap(row: Row, images: string[]): Product {
     sellerId: row.seller_id,
     sellerName: row.profiles?.display_name || 'Vendedor',
     sellerVerified: row.seller_verifications?.status === 'verified',
+    sellerWhatsapp: row.profiles?.whatsapp_phone ?? undefined,
     createdAt: new Date(row.created_at),
     publishedAt: row.published_at ? new Date(row.published_at) : undefined,
     location: row.zone ?? 'La Paz',
@@ -63,6 +64,8 @@ function baseMap(row: Row, images: string[]): Product {
     deliveryMethods: row.delivery_methods as DeliveryMethod[],
     status: row.status,
     rejectionReason: row.rejection_reason ?? undefined,
+    pickupAddress: row.pickup_address ?? undefined,
+    pickupMapsUrl: row.pickup_maps_url ?? undefined,
   };
 }
 
@@ -79,7 +82,7 @@ async function mapListing(row: Row): Promise<Product> {
 const SELECT = `
   id, seller_id, title, description, price_bs, zone, condition,
   delivery_methods, status, cover_image_url, rejection_reason,
-  published_at, created_at, category_id,
+  published_at, created_at, category_id, pickup_address, pickup_maps_url,
   categories:category_id ( slug, name ),
   listing_images ( path, sort_order )
 `;
@@ -87,17 +90,21 @@ const SELECT = `
 async function hydrateSellers(rows: Row[]): Promise<Row[]> {
   const ids = Array.from(new Set(rows.map((r) => r.seller_id)));
   if (ids.length === 0) return rows;
-  const [{ data: profs }, { data: verifs }] = await Promise.all([
-    supabase.from('profiles').select('id, display_name').in('id', ids),
+  const [{ data: sellers }, { data: verifs }] = await Promise.all([
+    supabase.from('seller_public' as any).select('id, display_name, whatsapp_phone').in('id', ids),
     supabase.from('seller_verifications').select('user_id, status').in('user_id', ids),
   ]);
-  const pMap = new Map((profs ?? []).map((p: { id: string; display_name: string }) => [p.id, p.display_name]));
+  const pMap = new Map(((sellers ?? []) as unknown as { id: string; display_name: string; whatsapp_phone: string | null }[])
+    .map((p) => [p.id, p]));
   const vMap = new Map((verifs ?? []).map((v: { user_id: string; status: string }) => [v.user_id, v.status]));
-  return rows.map((r) => ({
-    ...r,
-    profiles: pMap.has(r.seller_id) ? { display_name: pMap.get(r.seller_id) as string } : null,
-    seller_verifications: vMap.has(r.seller_id) ? { status: vMap.get(r.seller_id) as string } : null,
-  }));
+  return rows.map((r) => {
+    const p = pMap.get(r.seller_id);
+    return {
+      ...r,
+      profiles: p ? { display_name: p.display_name, whatsapp_phone: p.whatsapp_phone } : null,
+      seller_verifications: vMap.has(r.seller_id) ? { status: vMap.get(r.seller_id) as string } : null,
+    };
+  });
 }
 
 export async function fetchPublishedListings(opts: { search?: string; categorySlug?: string | null; limit?: number } = {}) {
@@ -127,4 +134,37 @@ export async function fetchMyListings() {
   if (error) throw error;
   const rows = await hydrateSellers((data as unknown as Row[]) ?? []);
   return Promise.all(rows.map(mapListing));
+}
+
+export async function fetchListingsBySeller(sellerId: string): Promise<Product[]> {
+  const { data, error } = await supabase
+    .from('listings')
+    .select(SELECT)
+    .eq('seller_id', sellerId)
+    .eq('status', 'published')
+    .order('published_at', { ascending: false });
+  if (error) throw error;
+  const rows = await hydrateSellers((data as unknown as Row[]) ?? []);
+  return Promise.all(rows.map(mapListing));
+}
+
+export async function fetchSellerPublic(sellerId: string): Promise<SellerPublic | null> {
+  const { data, error } = await supabase
+    .from('seller_public' as any)
+    .select('id, display_name, avatar_url, zone, whatsapp_phone, verified')
+    .eq('id', sellerId)
+    .maybeSingle();
+  if (error || !data) return null;
+  const row = data as unknown as {
+    id: string; display_name: string; avatar_url: string | null;
+    zone: string | null; whatsapp_phone: string | null; verified: boolean;
+  };
+  return {
+    id: row.id,
+    displayName: row.display_name || 'Vendedor',
+    avatarUrl: row.avatar_url ?? undefined,
+    zone: row.zone ?? undefined,
+    whatsappPhone: row.whatsapp_phone ?? undefined,
+    verified: !!row.verified,
+  };
 }

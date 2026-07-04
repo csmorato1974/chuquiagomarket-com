@@ -13,6 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import ImagePicker from '@/components/publish/ImagePicker';
 import { signedImageUrl } from '@/lib/listings';
+import { isValidPhone } from '@/lib/whatsapp';
+import { validateMapsUrl } from '@/lib/whatsapp';
 
 const CONDITIONS: Condition[] = ['new', 'like_new', 'good', 'fair'];
 const DELIVERIES: DeliveryMethod[] = ['pickup', 'delivery_lapaz', 'shipping_bo'];
@@ -21,11 +23,14 @@ interface FormState {
   title: string; price: string; categorySlug: string; zone: string;
   condition: Condition | ''; delivery: DeliveryMethod[]; description: string;
   image: File | null;
+  pickupAddress: string;
+  pickupMapsUrl: string;
 }
 
 const empty: FormState = {
   title: '', price: '', categorySlug: '', zone: '', condition: '',
   delivery: [], description: '', image: null,
+  pickupAddress: '', pickupMapsUrl: '',
 };
 
 interface Props { editingId?: string }
@@ -40,20 +45,27 @@ const Publish = ({ editingId }: Props) => {
   useEffect(() => {
     if (!editingId) return;
     (async () => {
-      const { data } = await supabase.from('listings').select('*, categories:category_id(slug)').eq('id', editingId).maybeSingle();
+      const { data } = await supabase
+        .from('listings')
+        .select('*, categories:category_id(slug)')
+        .eq('id', editingId)
+        .maybeSingle();
       if (!data) return;
+      const d = data as typeof data & { pickup_address?: string | null; pickup_maps_url?: string | null };
       setForm({
-        title: data.title,
-        price: String(data.price_bs),
-        categorySlug: (data as any).categories?.slug ?? '',
-        zone: data.zone ?? '',
-        condition: data.condition as Condition,
-        delivery: (data.delivery_methods ?? []) as DeliveryMethod[],
-        description: data.description ?? '',
+        title: d.title,
+        price: String(d.price_bs),
+        categorySlug: (d as any).categories?.slug ?? '',
+        zone: d.zone ?? '',
+        condition: d.condition as Condition,
+        delivery: (d.delivery_methods ?? []) as DeliveryMethod[],
+        description: d.description ?? '',
         image: null,
+        pickupAddress: d.pickup_address ?? '',
+        pickupMapsUrl: d.pickup_maps_url ?? '',
       });
-      if (data.cover_image_url) {
-        setExistingCover(await signedImageUrl(data.cover_image_url));
+      if (d.cover_image_url) {
+        setExistingCover(await signedImageUrl(d.cover_image_url));
       }
     })();
   }, [editingId]);
@@ -65,6 +77,30 @@ const Publish = ({ editingId }: Props) => {
     if (!form.title || !form.price || !form.categorySlug || !form.zone ||
         !form.condition || form.delivery.length === 0 || !form.description) {
       toast.error('Completa todos los campos'); return false;
+    }
+    if (form.delivery.includes('pickup') && !form.pickupAddress.trim()) {
+      toast.error('Indica la dirección de retiro'); return false;
+    }
+    if (form.pickupMapsUrl.trim()) {
+      const check = validateMapsUrl(form.pickupMapsUrl.trim());
+      if (!check.valid) {
+        toast.error('El enlace de Maps debe empezar por https://'); return false;
+      }
+      if (!check.isGoogle) {
+        toast.error('Usa un enlace de Google Maps (google.com/maps o maps.app.goo.gl)'); return false;
+      }
+    }
+    return true;
+  };
+
+  const ensurePhoneForReview = async (): Promise<boolean> => {
+    if (!user) return false;
+    const { data } = await supabase.from('profiles').select('whatsapp_phone').eq('id', user.id).maybeSingle();
+    const phone = (data as { whatsapp_phone?: string | null } | null)?.whatsapp_phone ?? '';
+    if (!isValidPhone(phone)) {
+      toast.error('Antes de publicar, añade tu teléfono de WhatsApp en tu perfil.');
+      navigate('/perfil');
+      return false;
     }
     return true;
   };
@@ -83,6 +119,7 @@ const Publish = ({ editingId }: Props) => {
     if (!user) return;
     if (status === 'pending_review' && !validate()) return;
     if (status === 'draft' && !form.title) { toast.error('Ponle un título al borrador'); return; }
+    if (status === 'pending_review' && !(await ensurePhoneForReview())) return;
     setIsSubmitting(true);
     try {
       const category = CATEGORIES.find((c) => c.slug === form.categorySlug);
@@ -91,6 +128,7 @@ const Publish = ({ editingId }: Props) => {
         const { data: cat } = await supabase.from('categories').select('id').eq('slug', category.slug).maybeSingle();
         categoryId = cat?.id ?? null;
       }
+      const usesPickup = form.delivery.includes('pickup');
       const payload = {
         seller_id: user.id,
         title: form.title,
@@ -101,12 +139,14 @@ const Publish = ({ editingId }: Props) => {
         delivery_methods: form.delivery,
         category_id: categoryId,
         status,
+        pickup_address: usesPickup ? (form.pickupAddress.trim() || null) : null,
+        pickup_maps_url: usesPickup ? (form.pickupMapsUrl.trim() || null) : null,
       };
       let id = editingId;
       if (editingId) {
-        // Editing a published listing sends it back to review.
         const { data: existing } = await supabase.from('listings').select('status').eq('id', editingId).maybeSingle();
         const nextStatus: ListingStatus = existing?.status === 'published' ? 'pending_review' : status;
+        if (nextStatus === 'pending_review' && !(await ensurePhoneForReview())) { setIsSubmitting(false); return; }
         const { error } = await supabase.from('listings').update({ ...payload, status: nextStatus }).eq('id', editingId);
         if (error) throw error;
       } else {
@@ -124,6 +164,8 @@ const Publish = ({ editingId }: Props) => {
       toast.error(err instanceof Error ? err.message : 'Error al guardar');
     } finally { setIsSubmitting(false); }
   };
+
+  const pickupSelected = form.delivery.includes('pickup');
 
   return (
     <Layout>
@@ -145,6 +187,7 @@ const Publish = ({ editingId }: Props) => {
                   <li>Publica fotos reales del producto.</li>
                   <li>Prohibido armas, drogas, animales y falsificaciones.</li>
                   <li>El precio debe estar en bolivianos (Bs).</li>
+                  <li>Necesitas un teléfono WhatsApp en tu perfil para publicar.</li>
                 </ul>
               </div>
             </div>
@@ -217,6 +260,36 @@ const Publish = ({ editingId }: Props) => {
                 ))}
               </div>
             </div>
+
+            {pickupSelected && (
+              <div className="space-y-3 p-4 border rounded-xl bg-secondary/30">
+                <div>
+                  <Label htmlFor="pickup-address" className="text-base">Dirección de retiro</Label>
+                  <Input
+                    id="pickup-address"
+                    placeholder="Ej: Av. 6 de Agosto 2345, Sopocachi"
+                    value={form.pickupAddress}
+                    onChange={(e) => setForm({ ...form, pickupAddress: e.target.value })}
+                    className="mt-2 h-12"
+                    maxLength={200}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="pickup-maps" className="text-base">Enlace de Google Maps (opcional)</Label>
+                  <Input
+                    id="pickup-maps"
+                    placeholder="https://maps.app.goo.gl/..."
+                    value={form.pickupMapsUrl}
+                    onChange={(e) => setForm({ ...form, pickupMapsUrl: e.target.value })}
+                    className="mt-2 h-12"
+                    maxLength={500}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Solo se aceptan enlaces https:// de Google Maps o maps.app.goo.gl.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div>
               <Label htmlFor="description" className="text-base">Descripción</Label>

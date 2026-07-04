@@ -7,12 +7,13 @@ import SafetyNotice from '@/components/trust/SafetyNotice';
 import VerifiedBadge from '@/components/trust/VerifiedBadge';
 import ReportButton from '@/components/trust/ReportButton';
 import { CATEGORIES, Product } from '@/types/marketplace';
-import { MapPin, User, Calendar, ArrowLeft, MessageCircle, Heart, Share2, Tag, PackageCheck } from 'lucide-react';
+import { MapPin, User, Calendar, ArrowLeft, MessageCircle, Heart, Share2, Tag, PackageCheck, Store, ExternalLink } from 'lucide-react';
 import { formatBs, formatDate, CONDITION_LABEL, DELIVERY_LABEL } from '@/lib/format';
 import { fetchListingById } from '@/lib/listings';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { buildWaUrl, buildListingMessage } from '@/lib/whatsapp';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -55,9 +56,14 @@ const ProductDetail = () => {
     }
   };
 
+  const waUrl = product?.sellerWhatsapp
+    ? buildWaUrl(product.sellerWhatsapp, buildListingMessage(product.title, typeof window !== 'undefined' ? window.location.href : undefined))
+    : null;
+
   const onContact = () => {
-    if (id) supabase.from('lead_events').insert({ listing_id: id, user_id: user?.id ?? null, type: 'contact_click' });
-    toast.info('Función de mensajería próximamente.');
+    if (!waUrl || !id) return;
+    supabase.from('lead_events').insert({ listing_id: id, user_id: user?.id ?? null, type: 'whatsapp_click' });
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
   if (loading) return <Layout><div className="container-market py-12">Cargando…</div></Layout>;
@@ -100,7 +106,15 @@ const ProductDetail = () => {
             </div>
 
             <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={onContact}><MessageCircle className="h-5 w-5" /> Contactar vendedor</Button>
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={onContact}
+                disabled={!waUrl}
+                title={waUrl ? 'Abrir WhatsApp' : 'El vendedor aún no configuró WhatsApp'}
+              >
+                <MessageCircle className="h-5 w-5" /> {waUrl ? 'Contactar por WhatsApp' : 'Contacto no disponible'}
+              </Button>
               <div className="flex gap-3">
                 <Button size="lg" variant="outline" className="flex-1" onClick={toggleFavorite}>
                   <Heart className={`h-5 w-5 ${isFavorite ? 'fill-deal text-deal' : ''}`} /> {isFavorite ? 'Guardado' : 'Guardar'}
@@ -108,6 +122,25 @@ const ProductDetail = () => {
                 <Button size="lg" variant="outline" className="flex-1"><Share2 className="h-5 w-5" /> Compartir</Button>
               </div>
             </div>
+
+            {product.pickupAddress && (
+              <div className="p-4 bg-card border rounded-xl text-sm">
+                <div className="flex items-center gap-2 font-semibold mb-1">
+                  <MapPin className="h-4 w-4 text-primary" /> Retiro en
+                </div>
+                <p className="text-muted-foreground">{product.pickupAddress}</p>
+                {product.pickupMapsUrl && (
+                  <a
+                    href={product.pickupMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary text-sm mt-2 hover:underline"
+                  >
+                    <ExternalLink className="h-3 w-3" /> Ver en Google Maps
+                  </a>
+                )}
+              </div>
+            )}
 
             <SafetyNotice />
 
@@ -122,6 +155,12 @@ const ProductDetail = () => {
                   <div className="flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="h-3 w-3" /> Vendedor en La Paz</div>
                 </div>
               </div>
+              <Link
+                to={`/vendedor/${product.sellerId}`}
+                className="inline-flex items-center gap-1 text-primary text-sm mt-3 hover:underline"
+              >
+                <Store className="h-4 w-4" /> Ver más productos de este vendedor
+              </Link>
             </div>
 
             <div className="flex justify-end"><ReportButton listingId={product.id} /></div>
