@@ -73,10 +73,28 @@ const Header = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="search-input-ebay"
               />
-              <button type="button" className="h-12 px-4 bg-background border-2 border-l-0 border-border flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Categorías
-                <ChevronDown className="h-4 w-4" />
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className="h-12 px-4 bg-background border-2 border-l-0 border-border flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Categorías
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 max-h-96 overflow-y-auto bg-popover z-50">
+                  <DropdownMenuItem onClick={() => navigate('/productos')}>
+                    Todas las categorías
+                  </DropdownMenuItem>
+                  {CATEGORIES.map((category) => (
+                    <DropdownMenuItem
+                      key={category.id}
+                      onClick={() => navigate(`/productos?category=${category.id}`)}
+                    >
+                      {category.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <button type="submit" className="search-button-ebay">
                 Buscar
               </button>
