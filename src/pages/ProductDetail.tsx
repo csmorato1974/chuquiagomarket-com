@@ -143,6 +143,9 @@ const ProductDetail = () => {
             )}
 
             <SafetyNotice />
+            <Link to="/ayuda#comprar-seguro" className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1">
+              Consejos para comprar seguro →
+            </Link>
 
             <div className="p-4 bg-card border rounded-xl">
               <div className="flex items-center gap-3">

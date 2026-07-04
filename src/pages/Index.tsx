@@ -90,6 +90,9 @@ const Index = () => {
         </div>
       </section>
 
+      <SafetyTipsSection />
+
+
       {near.length > 0 && (
         <section className="py-10 md:py-14 bg-card">
           <div className="container-market">
