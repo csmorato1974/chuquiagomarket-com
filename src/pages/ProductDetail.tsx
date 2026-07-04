@@ -7,12 +7,13 @@ import SafetyNotice from '@/components/trust/SafetyNotice';
 import VerifiedBadge from '@/components/trust/VerifiedBadge';
 import ReportButton from '@/components/trust/ReportButton';
 import { CATEGORIES, Product } from '@/types/marketplace';
-import { MapPin, User, Calendar, ArrowLeft, MessageCircle, Heart, Share2, Tag, PackageCheck } from 'lucide-react';
+import { MapPin, User, Calendar, ArrowLeft, MessageCircle, Heart, Share2, Tag, PackageCheck, Store, ExternalLink } from 'lucide-react';
 import { formatBs, formatDate, CONDITION_LABEL, DELIVERY_LABEL } from '@/lib/format';
 import { fetchListingById } from '@/lib/listings';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { buildWaUrl, buildListingMessage } from '@/lib/whatsapp';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
