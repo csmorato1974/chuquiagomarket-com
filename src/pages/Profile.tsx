@@ -25,17 +25,26 @@ const Profile = () => {
   const [verified, setVerified] = useState(false);
   const [phone, setPhone] = useState('');
   const [savingPhone, setSavingPhone] = useState(false);
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       const [{ data: prof }, { data: verif }, mine] = await Promise.all([
-        supabase.from('profiles').select('display_name, whatsapp_phone').eq('id', user.id).maybeSingle(),
+        supabase.from('profiles').select('display_name, whatsapp_phone, avatar_url').eq('id', user.id).maybeSingle(),
         supabase.from('seller_verifications').select('status').eq('user_id', user.id).maybeSingle(),
         fetchMyListings(),
       ]);
       setDisplayName(prof?.display_name || user.email?.split('@')[0] || 'Usuario');
-      setPhone((prof as { whatsapp_phone?: string | null } | null)?.whatsapp_phone ?? '');
+      const p = prof as { whatsapp_phone?: string | null; avatar_url?: string | null } | null;
+      setPhone(p?.whatsapp_phone ?? '');
+      const path = p?.avatar_url ?? null;
+      setAvatarPath(path);
+      setAvatarUrl(await getAvatarSignedUrl(path));
       setVerified(verif?.status === 'verified');
       setListings(mine);
     })();
