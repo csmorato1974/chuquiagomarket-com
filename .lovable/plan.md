@@ -1,36 +1,19 @@
-## Objetivo
+Plan para arreglar el botón de contacto sin cambiar el diseño general:
 
-Reducir la fricción del botón "Contactar vendedor": permitir que usuarios no logueados abran WhatsApp directamente, sin tocar el resto de reglas de autenticación ni el diseño general.
+1. **Corregir la causa principal en el backend**
+   - El botón queda inactivo para usuarios no logueados porque la app no puede leer el WhatsApp público del vendedor en modo anónimo.
+   - Crear una migración mínima para permitir a `anon` leer solo la vista pública `seller_public` y ejecutar la función pública necesaria `get_seller_public()`.
+   - No abrir acceso directo a tablas privadas de perfil ni cambiar permisos de publicar, editar, favoritos, reportes o perfil.
 
-## Cambios
+2. **Evitar errores visibles por verificaciones públicas**
+   - Ajustar la hidratación de vendedores para usar `seller_public.verified` en lugar de consultar `seller_verifications` por separado en vistas públicas.
+   - Así se evita el error 401 de `seller_verifications` para anónimos sin conceder más permisos de los necesarios.
 
-**Único archivo tocado:** `src/pages/ProductDetail.tsx`
+3. **Revisar la función de contacto**
+   - Mantener el botón activo cuando exista WhatsApp, aunque no haya sesión.
+   - Abrir WhatsApp directamente.
+   - Registrar `lead_events` con `user_id: null` para anónimos y hacerlo en modo no bloqueante: si falla el registro, WhatsApp igual se abre.
 
-1. **`onContact` — permitir anónimos:**
-   - Eliminar la rama `if (!user) navigate('/auth')`.
-   - Si no hay `waUrl` o `id`, salir.
-   - Registrar el evento `whatsapp_click` en `lead_events` con `user_id: user?.id ?? null` (la política `lead_insert_scoped` ya acepta `user_id IS NULL` y `anon` tiene GRANT). El insert va sin `await` y sin bloquear; si falla no rompe el flujo (se abre WhatsApp igualmente).
-   - Abrir `waUrl` en nueva pestaña.
-
-2. **Botón principal:**
-   - Texto siempre `"Contactar por WhatsApp"` (o `"Contacto no disponible"` si el vendedor no tiene WhatsApp).
-   - `disabled` = `!waUrl` (para logueados y anónimos por igual).
-   - Quitar el `title` que dice "Inicia sesión para contactar".
-
-3. **Aviso de apoyo (reemplaza el `Alert` de login):**
-   - Sustituir el bloque `{!user && <Alert>…}` por un texto pequeño (`text-xs text-muted-foreground`) visible siempre debajo del botón:
-     > "El contacto se realiza por WhatsApp con el vendedor. Sigue las [recomendaciones de seguridad](/ayuda#comprar-seguro) de la plataforma."
-   - Sin componente `Alert`, sin cambios de layout ni colores; encaja en el `flex flex-col gap-3` actual.
-   - Se puede quitar el import de `Alert`, `AlertDescription`, `AlertTitle` y `Info` si dejan de usarse.
-
-## Fuera de alcance
-
-- Favoritos, reportar, publicar/editar, perfil: siguen requiriendo login (sin cambios).
-- `SafetyNotice` y el link "Consejos para comprar seguro" del sidebar se mantienen tal cual.
-- Sin cambios en RLS, esquema, ni en `Auth.tsx`.
-
-## Verificación
-
-- Build.
-- Playwright en sesión anónima: abrir `/producto/:id`, click en "Contactar por WhatsApp" → se abre `wa.me/...` en nueva pestaña, sin redirección a `/auth`.
-- Confirmar que "Guardar" sigue mostrando el toast "Inicia sesión para guardar" para anónimos.
+4. **Mantener el texto de apoyo existente**
+   - Conservar el texto pequeño bajo el botón sobre WhatsApp y recomendaciones de seguridad.
+   - No cambiar estilos generales ni el resto de reglas de autenticación.
