@@ -148,6 +148,43 @@ const Profile = () => {
 
         <div className="bg-card rounded-2xl border p-6 mb-8">
           <div className="flex items-center gap-2 mb-1">
+            <Camera className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-bold">Foto de perfil</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Se muestra en tu perfil público y a los compradores. PNG, JPG o WEBP, hasta 3 MB.
+          </p>
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+              {shownAvatar ? (
+                <img src={shownAvatar} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                <User className="h-8 w-8 text-primary" />
+              )}
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button type="button" variant="outline" onClick={onPickFile} disabled={uploadingAvatar}>
+                <Camera className="h-4 w-4" /> {avatarPath ? 'Cambiar foto' : 'Subir foto'}
+              </Button>
+              {avatarPath && (
+                <Button type="button" variant="ghost" onClick={onRemoveAvatar} disabled={uploadingAvatar}>
+                  <Trash2 className="h-4 w-4" /> Quitar
+                </Button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPTED_AVATAR_TYPES.join(',')}
+                onChange={onFileChange}
+                className="hidden"
+              />
+            </div>
+          </div>
+        </div>
+
+
+        <div className="bg-card rounded-2xl border p-6 mb-8">
+          <div className="flex items-center gap-2 mb-1">
             <Phone className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-bold">Datos de contacto</h2>
           </div>
