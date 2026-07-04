@@ -120,8 +120,20 @@ const ProductDetail = () => {
                 disabled={!waUrl}
                 title={waUrl ? 'Abrir WhatsApp' : 'El vendedor aún no configuró WhatsApp'}
               >
-                <MessageCircle className="h-5 w-5" /> {waUrl ? 'Contactar por WhatsApp' : 'Contacto no disponible'}
+                <MessageCircle className="h-5 w-5" /> {!waUrl ? 'Contacto no disponible' : user ? 'Contactar por WhatsApp' : 'Inicia sesión para contactar'}
               </Button>
+              {!user && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Inicia sesión para contactar</AlertTitle>
+                  <AlertDescription>
+                    Debes iniciar sesión para contactar al vendedor por WhatsApp.{' '}
+                    <Link to="/auth" state={{ from: location.pathname }} className="text-primary hover:underline">
+                      Inicia sesión o regístrate
+                    </Link>
+                  </AlertDescription>
+                </Alert>
+              )}
               <div className="flex gap-3">
                 <Button size="lg" variant="outline" className="flex-1" onClick={toggleFavorite}>
                   <Heart className={`h-5 w-5 ${isFavorite ? 'fill-deal text-deal' : ''}`} /> {isFavorite ? 'Guardado' : 'Guardar'}
