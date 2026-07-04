@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -7,11 +7,12 @@ import { Label } from '@/components/ui/label';
 import { ListingStatus, Product } from '@/types/marketplace';
 import { STATUS_LABEL, STATUS_COLOR, formatDate } from '@/lib/format';
 import VerifiedBadge from '@/components/trust/VerifiedBadge';
-import { User, Mail, Calendar, Plus, Settings, BadgeCheck, Phone } from 'lucide-react';
+import { User, Mail, Calendar, Plus, Settings, BadgeCheck, Phone, Camera, Trash2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchMyListings } from '@/lib/listings';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizePhone, isValidPhone } from '@/lib/whatsapp';
+import { uploadAvatar, getAvatarSignedUrl, removeAvatar, validateAvatarFile, ACCEPTED_AVATAR_TYPES } from '@/lib/avatars';
 import { toast } from 'sonner';
 
 const STATUSES: (ListingStatus | 'all')[] = ['all','published','pending_review','draft','paused','sold','rejected','archived'];
