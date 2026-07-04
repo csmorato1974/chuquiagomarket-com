@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import HeroSection from '@/components/home/HeroSection';
+import SafetyTipsSection from '@/components/home/SafetyTipsSection';
 import CategoryCard from '@/components/home/CategoryCard';
 import ProductGrid from '@/components/products/ProductGrid';
 import SafetyNotice from '@/components/trust/SafetyNotice';
@@ -88,6 +89,9 @@ const Index = () => {
           <SafetyNotice />
         </div>
       </section>
+
+      <SafetyTipsSection />
+
 
       {near.length > 0 && (
         <section className="py-10 md:py-14 bg-card">

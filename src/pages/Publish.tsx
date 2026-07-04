@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -189,9 +189,13 @@ const Publish = ({ editingId }: Props) => {
                   <li>El precio debe estar en bolivianos (Bs).</li>
                   <li>Necesitas un teléfono WhatsApp en tu perfil para publicar.</li>
                 </ul>
+                <Link to="/ayuda#vender-mejor" className="inline-block mt-2 text-sm font-medium text-primary hover:underline">
+                  Consejos para crear un anuncio confiable →
+                </Link>
               </div>
             </div>
           </div>
+
 
           <form onSubmit={(e) => { e.preventDefault(); persist('pending_review'); }} className="space-y-6">
             <div>
