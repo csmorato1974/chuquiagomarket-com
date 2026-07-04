@@ -1,48 +1,50 @@
 ## Objetivo
 
-Reemplazar el fondo estático del hero de la home por un **video corto en loop** generado con Remotion, manteniendo textos, botones, badge y overlay exactamente como están.
+Rehacer el fondo animado del hero para que evoque claramente el **Illimani** (silueta realista al atardecer) en lugar de la actual línea genérica de montañas. Mantener paraguas flotantes, bokeh y overlay legibles.
 
-Nota: en la iteración anterior ya se aplicó un efecto Ken Burns por CSS. Este plan lo **sustituye** por un video MP4 real (más rico visualmente) generado con la skill `video-creator`.
+## Cambios de dirección visual
 
-## Video a generar
-
-- **Duración:** 10s en loop (300 frames a 30fps).
-- **Resolución:** 1920×1080, H.264, sin audio (mute).
-- **Dirección creativa — "La Paz market drift":**
-  - Paleta: azul primario `#1D4ED8`, acento cálido `#F59E0B`, neutros `#0F172A` y `#F8FAFC`, base cielo `#DCE7F5`.
-  - Tipografía: no aplica (el video es solo fondo, sin texto — el copy vive en el DOM encima).
-  - Motion: cámara lenta tipo "drift" con parallax de 3 capas — cielo con paraguas de colores flotando, siluetas de puestos del mercado en midground con leve sway, y en foreground granos/partículas de luz que atraviesan el encuadre. Sin cortes: un solo plano continuo que respira.
-  - Motivos: paraguas triangulares/redondos como shapes SVG animados, líneas finas de "cables" oscilando, luces bokeh suaves.
-- **Sin texto en el video** (para que el título/CTAs del DOM sean legibles y editables).
-- **Overlay compatible:** el lado izquierdo debe quedar más oscuro/sencillo para no competir con el copy blanco; el lado derecho puede tener más color.
+- **Silueta del Illimani** al centro-derecha: tres cumbres características (Pico Sur dominante al centro, Pico Central a la derecha, Pico del Indio más bajo a la izquierda), con laderas largas cayendo hacia los flancos. Basado en el perfil real visto desde La Paz.
+- **Nieve sutil**: parches blanco cálido (`#F5EEDC`) en las cumbres, con bordes irregulares (path SVG separado, opacidad ~0.85). Nada de degradados neón.
+- **Atmósfera de atardecer**:
+  - Cielo: gradiente `#F4C27A` (arriba) → `#E88A5C` (medio) → `#B85A3E` (bajo, cerca del horizonte).
+  - Sol bajo detrás del Illimani (glow radial ámbar, semi-oculto por la cumbre).
+  - Neblina/haze horizontal cálida delante de la sierra lejana para dar profundidad.
+- **Capas de profundidad** (parallax lento, loop perfecto):
+  1. Sierra lejana muy tenue (`#7A6A8A`, opacidad 0.45) — insinuación de la Cordillera Real detrás.
+  2. Illimani nítido (`#2A2340`) — masa principal.
+  3. Colinas urbanas de La Paz en primer término (`#0F0A1F`) — línea quebrada baja con puntitos de luz cálidos (ventanas) que titilan.
+- **Paraguas**: se mantienen pero reducidos a ~14 (antes 22) y desplazados a la franja superior-izquierda para no tapar la cumbre del Illimani.
+- **Bokeh**: se mantiene, densidad menor (~24), tonos ámbar/blanco cálido.
+- **Vignette izquierda**: se conserva para legibilidad del copy.
 
 ## Producción (skill video-creator)
 
-1. Scaffold `remotion/` con `bun init`, instalar `remotion`, `@remotion/cli`, `@remotion/renderer`, `@remotion/bundler`, `@remotion/transitions`, `@remotion/compositor-linux-x64-musl`, react, react-dom, typescript, @types/react. Parchear el binario compositor gnu y symlinks de ffmpeg/ffprobe.
-2. `src/Root.tsx`: composición `id="hero-loop"`, 1920×1080, 30fps, 300 frames.
-3. `src/HeroLoop.tsx`: una sola escena con capas persistentes (sin `TransitionSeries`, para que el loop no tenga costura):
-   - **Sky layer:** gradiente animado + ~14 paraguas SVG posicionados con parallax lento (`interpolate` sinusoidal por frame, distintos offsets/velocidades).
-   - **Mid layer:** siluetas de edificios/puestos con leve translateY oscilante.
-   - **Front layer:** ~30 partículas de luz (bokeh) desplazándose diagonalmente, opacidad pulsante.
-   - **Vignette:** overlay radial oscuro por la izquierda (para asegurar contraste con el copy del hero).
-   - Movimiento pensado como **loop perfecto**: valores en frame 0 y frame 300 coinciden (funciones sin/cos con periodo múltiplo de la duración).
-4. Render con script programático (`scripts/render-remotion.mjs`, `chromeMode: "chrome-for-testing"`, `muted: true`, concurrency 1) → `/mnt/documents/hero-loop.mp4`.
-5. Spot-check con `bunx remotion still` en frames 0/75/150/225/299 para validar continuidad del loop.
+1. Editar `remotion/src/HeroLoop.tsx`:
+   - Reemplazar los dos `path` de montañas genéricas por:
+     - `path` "cordillera lejana" con curva suave.
+     - `path` "Illimani" construido a mano con vértices explícitos que dibujen los tres picos (proporciones tomadas de foto de referencia de La Paz).
+     - `path` "nieve" superpuesto sólo sobre las cumbres del Illimani.
+     - `path` "ciudad" con silueta baja quebrada + `rect`s de ventanas titilantes.
+   - Ajustar paleta de cielo (`SKY_TOP/MID/LOW`) a tonos atardecer descritos.
+   - Reposicionar sol: `right: 42%`, `top: 55%` (justo detrás del Pico Sur), radio menor, glow más denso.
+   - Añadir capa de neblina horizontal (`linear-gradient` cálido con opacidad baja) entre cordillera lejana e Illimani.
+   - Reducir array `UMBRELLAS` a 14 elementos y forzar `x < 0.55` para dejar la mitad derecha para la montaña.
+   - Reducir `BOKEH` a 24 partículas.
+   - Mantener periodicidad seno/coseno para loop sin costura (300 frames, 30fps, 1920×1080).
+2. Spot-check con `bunx remotion still` en frames 0, 75, 150, 225, 299 → validar que el Illimani se lee y el loop cierra.
+3. Renderizar con `node scripts/render-remotion.mjs` → sobrescribe `/mnt/documents/hero-loop.mp4`.
+4. Volver a subir el MP4 con `lovable-assets create` → sobrescribir `src/assets/hero-loop.mp4.asset.json`.
 
-## Integración en la web
+## Integración web
 
-1. Subir el MP4 renderizado como asset de Lovable: `lovable-assets create --file /mnt/documents/hero-loop.mp4 --filename hero-loop.mp4 > src/assets/hero-loop.mp4.asset.json`.
-2. En `src/components/home/HeroSection.tsx`:
-   - Reemplazar el `div.hero-kenburns` por un `<video>` con `autoPlay muted loop playsInline preload="metadata"` y `poster={heroBanner}` (fallback al JPG actual mientras carga o si el usuario tiene datos limitados).
-   - Clases: `absolute inset-0 w-full h-full object-cover`.
-   - Mantener overlay, contenido, badge y botones sin cambios.
-3. En `src/index.css`: retirar `@keyframes kenburns` y la clase `.hero-kenburns` (ya no se usa).
-4. Accesibilidad: `<video>` con `aria-hidden="true"`, sin controles, respeta autoplay policies (muted).
-5. `prefers-reduced-motion: reduce` → no reproducir el video: renderizar solo la imagen `heroBanner` como fondo. Se maneja con un pequeño hook `useReducedMotion` (o `matchMedia` inline en el componente, sin dependencias).
+- **Sin cambios** en `src/components/home/HeroSection.tsx` (ya usa `heroLoop.url`).
+- **Sin cambios** en `src/index.css`.
+- **Sin cambios** en textos, botones, badge ni layout.
 
 ## Fuera de alcance
 
-- No se toca copy, botones, badge ni layout del hero.
-- No se generan otros videos ni se cambian otras páginas.
-- No se añaden librerías al bundle de la web (Remotion vive solo en `remotion/` y se usa offline para renderizar).
-- No se sube audio (video muted).
+- No se cambia el `heroBanner` (JPG usado como poster/fallback de `prefers-reduced-motion`).
+- No se añaden nuevas librerías.
+- No se toca lógica, rutas ni backend.
+- No se genera audio.
