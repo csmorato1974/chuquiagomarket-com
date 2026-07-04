@@ -8,6 +8,7 @@ import VerifiedBadge from '@/components/trust/VerifiedBadge';
 import { fetchListingsBySeller, fetchSellerPublic } from '@/lib/listings';
 import { Product, SellerPublic } from '@/types/marketplace';
 import { buildWaUrl } from '@/lib/whatsapp';
+import { getAvatarSignedUrl } from '@/lib/avatars';
 import { MapPin, MessageCircle, Store, User } from 'lucide-react';
 
 const SellerProfile = () => {
