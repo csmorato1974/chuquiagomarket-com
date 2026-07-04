@@ -121,8 +121,12 @@ const Profile = () => {
       <div className="container-market py-8 md:py-12">
         <div className="bg-card rounded-2xl border p-6 md:p-8 mb-8">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="h-10 w-10 md:h-12 md:w-12 text-primary" />
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+              {shownAvatar ? (
+                <img src={shownAvatar} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                <User className="h-10 w-10 md:h-12 md:w-12 text-primary" />
+              )}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
