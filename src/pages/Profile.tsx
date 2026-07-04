@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { ListingStatus, Product } from '@/types/marketplace';
 import { STATUS_LABEL, STATUS_COLOR, formatDate } from '@/lib/format';
 import VerifiedBadge from '@/components/trust/VerifiedBadge';
-import { User, Mail, Calendar, Plus, Settings, BadgeCheck, Phone, Camera, Trash2 } from 'lucide-react';
+import { User, Mail, Calendar, Plus, Settings, BadgeCheck, Phone, Camera, Trash2, LifeBuoy } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchMyListings } from '@/lib/listings';
 import { supabase } from '@/integrations/supabase/client';
@@ -207,6 +207,18 @@ const Profile = () => {
             Solo dígitos, sin “+”, espacios ni guiones. Ejemplo Bolivia: 59171234567.
           </p>
         </div>
+
+        <Link
+          to="/ayuda"
+          className="flex items-center gap-3 bg-card rounded-2xl border p-4 mb-8 hover:border-primary/50 transition-colors"
+        >
+          <LifeBuoy className="h-5 w-5 text-primary shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-foreground">Centro de ayuda y buenas prácticas</p>
+            <p className="text-sm text-muted-foreground">Consejos para comprar, vender y evitar fraudes en La Paz.</p>
+          </div>
+          <span className="text-sm text-primary font-medium">Ver guía →</span>
+        </Link>
 
         <div>
           <h2 className="text-xl md:text-2xl font-bold mb-4">Mis anuncios ({listings.length})</h2>

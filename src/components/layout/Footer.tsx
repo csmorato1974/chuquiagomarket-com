@@ -25,6 +25,7 @@ const Footer = () => {
             <h3 className="font-bold text-foreground mb-4">Chuquiago Market</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link to="/ayuda" className="hover:text-primary hover:underline">Ayuda</Link></li>
+              <li><Link to="/ayuda" className="hover:text-primary hover:underline">Buenas prácticas</Link></li>
               <li><Link to="/contacto" className="hover:text-primary hover:underline">Contacto</Link></li>
             </ul>
           </div>
