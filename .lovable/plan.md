@@ -1,25 +1,36 @@
-## Plan: Aviso de inicio de sesión para contactar al vendedor
+## Objetivo
 
-### Contexto
-Actualmente en la ficha de producto (`/producto/:id`) el botón "Contactar por WhatsApp" funciona para usuarios anónimos: abre WhatsApp directamente. Se solicita añadir un aviso que indique que se debe iniciar sesión para contactar al vendedor.
+Reducir la fricción del botón "Contactar vendedor": permitir que usuarios no logueados abran WhatsApp directamente, sin tocar el resto de reglas de autenticación ni el diseño general.
 
-### Cambios propuestos
+## Cambios
 
-1. **Ficha de producto (`src/pages/ProductDetail.tsx`)**
-   - Cuando el usuario no ha iniciado sesión, el botón principal cambiará a "Inicia sesión para contactar".
-   - Al hacer clic, redirigirá a `/auth` enviando como destino de retorno la URL actual del producto (`/producto/:id`).
-   - Se añadirá un aviso inline debajo del botón con el texto: "Debes iniciar sesión para contactar al vendedor por WhatsApp." y un enlace a iniciar sesión.
-   - Para usuarios logueados se conserva el comportamiento actual: abre el enlace de WhatsApp del vendedor.
+**Único archivo tocado:** `src/pages/ProductDetail.tsx`
 
-2. **Página de autenticación (`src/pages/Auth.tsx`)**
-   - Se verifica que el flujo de redirección post-login utilice el valor `state.from` enviado desde la ficha de producto, para devolver al usuario al anuncio tras autenticarse.
-   - Si no existe destino previo, se mantiene el comportamiento actual (`/perfil`).
+1. **`onContact` — permitir anónimos:**
+   - Eliminar la rama `if (!user) navigate('/auth')`.
+   - Si no hay `waUrl` o `id`, salir.
+   - Registrar el evento `whatsapp_click` en `lead_events` con `user_id: user?.id ?? null` (la política `lead_insert_scoped` ya acepta `user_id IS NULL` y `anon` tiene GRANT). El insert va sin `await` y sin bloquear; si falla no rompe el flujo (se abre WhatsApp igualmente).
+   - Abrir `waUrl` en nueva pestaña.
 
-3. **Verificación**
-   - Comprobación de build sin errores.
-   - Navegación manual en preview: usuario anónimo → ficha de producto → clic en contactar → login → retorno al producto y botón de WhatsApp funcional.
+2. **Botón principal:**
+   - Texto siempre `"Contactar por WhatsApp"` (o `"Contacto no disponible"` si el vendedor no tiene WhatsApp).
+   - `disabled` = `!waUrl` (para logueados y anónimos por igual).
+   - Quitar el `title` que dice "Inicia sesión para contactar".
 
-### Notas técnicas
-- No se toca lógica de negocio, pagos ni backend.
-- Se usan componentes existentes (`Button`, `Alert`) y estilos del proyecto.
-- Se respeta la regla mobile-first: aviso inline siempre visible, no tooltip.
+3. **Aviso de apoyo (reemplaza el `Alert` de login):**
+   - Sustituir el bloque `{!user && <Alert>…}` por un texto pequeño (`text-xs text-muted-foreground`) visible siempre debajo del botón:
+     > "El contacto se realiza por WhatsApp con el vendedor. Sigue las [recomendaciones de seguridad](/ayuda#comprar-seguro) de la plataforma."
+   - Sin componente `Alert`, sin cambios de layout ni colores; encaja en el `flex flex-col gap-3` actual.
+   - Se puede quitar el import de `Alert`, `AlertDescription`, `AlertTitle` y `Info` si dejan de usarse.
+
+## Fuera de alcance
+
+- Favoritos, reportar, publicar/editar, perfil: siguen requiriendo login (sin cambios).
+- `SafetyNotice` y el link "Consejos para comprar seguro" del sidebar se mantienen tal cual.
+- Sin cambios en RLS, esquema, ni en `Auth.tsx`.
+
+## Verificación
+
+- Build.
+- Playwright en sesión anónima: abrir `/producto/:id`, click en "Contactar por WhatsApp" → se abre `wa.me/...` en nueva pestaña, sin redirección a `/auth`.
+- Confirmar que "Guardar" sigue mostrando el toast "Inicia sesión para guardar" para anónimos.

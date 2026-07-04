@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
 import Breadcrumbs from '@/components/layout/Breadcrumbs';
 import SafetyNotice from '@/components/trust/SafetyNotice';
 import VerifiedBadge from '@/components/trust/VerifiedBadge';
 import ReportButton from '@/components/trust/ReportButton';
 import { CATEGORIES, Product } from '@/types/marketplace';
-import { MapPin, User, Calendar, ArrowLeft, MessageCircle, Heart, Share2, Tag, PackageCheck, Store, ExternalLink, Info } from 'lucide-react';
+import { MapPin, User, Calendar, ArrowLeft, MessageCircle, Heart, Share2, Tag, PackageCheck, Store, ExternalLink } from 'lucide-react';
 import { formatBs, formatDate, CONDITION_LABEL, DELIVERY_LABEL } from '@/lib/format';
 import { fetchListingById } from '@/lib/listings';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,8 +19,6 @@ import { buildWaUrl, buildListingMessage } from '@/lib/whatsapp';
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -64,12 +62,11 @@ const ProductDetail = () => {
     : null;
 
   const onContact = () => {
-    if (!user) {
-      navigate('/auth', { state: { from: location.pathname } });
-      return;
-    }
     if (!waUrl || !id) return;
-    supabase.from('lead_events').insert({ listing_id: id, user_id: user.id, type: 'whatsapp_click' });
+    // Registro compatible con anónimos (user_id IS NULL). No bloquea si falla.
+    try {
+      supabase.from('lead_events').insert({ listing_id: id, user_id: user?.id ?? null, type: 'whatsapp_click' });
+    } catch {}
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -117,23 +114,18 @@ const ProductDetail = () => {
                 size="lg"
                 className="w-full"
                 onClick={onContact}
-                disabled={!user ? false : !waUrl}
-                title={!user ? 'Inicia sesión para contactar al vendedor' : (waUrl ? 'Abrir WhatsApp' : 'El vendedor aún no configuró WhatsApp')}
+                disabled={!waUrl}
+                title={waUrl ? 'Abrir WhatsApp' : 'El vendedor aún no configuró WhatsApp'}
               >
-                <MessageCircle className="h-5 w-5" /> {!user ? 'Inicia sesión para contactar' : (waUrl ? 'Contactar por WhatsApp' : 'Contacto no disponible')}
+                <MessageCircle className="h-5 w-5" /> {waUrl ? 'Contactar por WhatsApp' : 'Contacto no disponible'}
               </Button>
-              {!user && (
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertTitle>Inicia sesión para contactar</AlertTitle>
-                  <AlertDescription>
-                    Debes iniciar sesión para contactar al vendedor por WhatsApp.{' '}
-                    <Link to="/auth" state={{ from: location.pathname }} className="text-primary hover:underline">
-                      Inicia sesión o regístrate
-                    </Link>
-                  </AlertDescription>
-                </Alert>
-              )}
+              <p className="text-xs text-muted-foreground">
+                El contacto se realiza por WhatsApp con el vendedor. Sigue las{' '}
+                <Link to="/ayuda#comprar-seguro" className="text-primary hover:underline">
+                  recomendaciones de seguridad
+                </Link>{' '}
+                de la plataforma.
+              </p>
               <div className="flex gap-3">
                 <Button size="lg" variant="outline" className="flex-1" onClick={toggleFavorite}>
                   <Heart className={`h-5 w-5 ${isFavorite ? 'fill-deal text-deal' : ''}`} /> {isFavorite ? 'Guardado' : 'Guardar'}
