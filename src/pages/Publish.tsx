@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import ImagePicker from '@/components/publish/ImagePicker';
-import { signedImageUrl, toStoragePath } from '@/lib/listings';
+import { signedImageUrl } from '@/lib/listings';
 
 const CONDITIONS: Condition[] = ['new', 'like_new', 'good', 'fair'];
 const DELIVERIES: DeliveryMethod[] = ['pickup', 'delivery_lapaz', 'shipping_bo'];
