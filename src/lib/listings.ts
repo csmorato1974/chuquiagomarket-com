@@ -94,7 +94,7 @@ async function hydrateSellers(rows: Row[]): Promise<Row[]> {
     supabase.from('seller_public' as any).select('id, display_name, whatsapp_phone').in('id', ids),
     supabase.from('seller_verifications').select('user_id, status').in('user_id', ids),
   ]);
-  const pMap = new Map(((sellers ?? []) as { id: string; display_name: string; whatsapp_phone: string | null }[])
+  const pMap = new Map(((sellers ?? []) as unknown as { id: string; display_name: string; whatsapp_phone: string | null }[])
     .map((p) => [p.id, p]));
   const vMap = new Map((verifs ?? []).map((v: { user_id: string; status: string }) => [v.user_id, v.status]));
   return rows.map((r) => {
@@ -155,7 +155,7 @@ export async function fetchSellerPublic(sellerId: string): Promise<SellerPublic 
     .eq('id', sellerId)
     .maybeSingle();
   if (error || !data) return null;
-  const row = data as {
+  const row = data as unknown as {
     id: string; display_name: string; avatar_url: string | null;
     zone: string | null; whatsapp_phone: string | null; verified: boolean;
   };
