@@ -1,11 +1,18 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Search, ChevronDown, Bell, Menu, X, User, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { CATEGORIES } from '@/types/marketplace';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoles } from '@/hooks/useRole';
 import logo from '@/assets/logo.png';
+
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
