@@ -117,10 +117,10 @@ const ProductDetail = () => {
                 size="lg"
                 className="w-full"
                 onClick={onContact}
-                disabled={!waUrl}
-                title={waUrl ? 'Abrir WhatsApp' : 'El vendedor aún no configuró WhatsApp'}
+                disabled={!user ? false : !waUrl}
+                title={!user ? 'Inicia sesión para contactar al vendedor' : (waUrl ? 'Abrir WhatsApp' : 'El vendedor aún no configuró WhatsApp')}
               >
-                <MessageCircle className="h-5 w-5" /> {!waUrl ? 'Contacto no disponible' : user ? 'Contactar por WhatsApp' : 'Inicia sesión para contactar'}
+                <MessageCircle className="h-5 w-5" /> {!user ? 'Inicia sesión para contactar' : (waUrl ? 'Contactar por WhatsApp' : 'Contacto no disponible')}
               </Button>
               {!user && (
                 <Alert>
