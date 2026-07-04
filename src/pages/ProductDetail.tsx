@@ -64,8 +64,12 @@ const ProductDetail = () => {
     : null;
 
   const onContact = () => {
+    if (!user) {
+      navigate('/auth', { state: { from: location.pathname } });
+      return;
+    }
     if (!waUrl || !id) return;
-    supabase.from('lead_events').insert({ listing_id: id, user_id: user?.id ?? null, type: 'whatsapp_click' });
+    supabase.from('lead_events').insert({ listing_id: id, user_id: user.id, type: 'whatsapp_click' });
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
