@@ -41,7 +41,7 @@ type Row = {
   pickup_maps_url?: string | null;
   categories?: { slug: string; name: string } | null;
   listing_images?: { path: string; sort_order: number }[];
-  profiles?: { display_name: string; whatsapp_phone: string | null } | null;
+  profiles?: { display_name: string; whatsapp_phone: string | null; verified?: boolean } | null;
   seller_verifications?: { status: string } | null;
 };
 
@@ -55,7 +55,7 @@ function baseMap(row: Row, images: string[]): Product {
     images: images.length > 0 ? images : ['/placeholder.svg'],
     sellerId: row.seller_id,
     sellerName: row.profiles?.display_name || 'Vendedor',
-    sellerVerified: row.seller_verifications?.status === 'verified',
+    sellerVerified: row.profiles?.verified ?? row.seller_verifications?.status === 'verified',
     sellerWhatsapp: row.profiles?.whatsapp_phone ?? undefined,
     createdAt: new Date(row.created_at),
     publishedAt: row.published_at ? new Date(row.published_at) : undefined,
@@ -90,19 +90,18 @@ const SELECT = `
 async function hydrateSellers(rows: Row[]): Promise<Row[]> {
   const ids = Array.from(new Set(rows.map((r) => r.seller_id)));
   if (ids.length === 0) return rows;
-  const [{ data: sellers }, { data: verifs }] = await Promise.all([
-    supabase.from('seller_public' as any).select('id, display_name, whatsapp_phone').in('id', ids),
-    supabase.from('seller_verifications').select('user_id, status').in('user_id', ids),
-  ]);
-  const pMap = new Map(((sellers ?? []) as unknown as { id: string; display_name: string; whatsapp_phone: string | null }[])
+  const { data: sellers } = await supabase
+    .from('seller_public' as any)
+    .select('id, display_name, whatsapp_phone, verified')
+    .in('id', ids);
+  const pMap = new Map(((sellers ?? []) as unknown as { id: string; display_name: string; whatsapp_phone: string | null; verified: boolean }[])
     .map((p) => [p.id, p]));
-  const vMap = new Map((verifs ?? []).map((v: { user_id: string; status: string }) => [v.user_id, v.status]));
   return rows.map((r) => {
     const p = pMap.get(r.seller_id);
     return {
       ...r,
-      profiles: p ? { display_name: p.display_name, whatsapp_phone: p.whatsapp_phone } : null,
-      seller_verifications: vMap.has(r.seller_id) ? { status: vMap.get(r.seller_id) as string } : null,
+      profiles: p ? { display_name: p.display_name, whatsapp_phone: p.whatsapp_phone, verified: p.verified } : null,
+      seller_verifications: p ? { status: p.verified ? 'verified' : 'unverified' } : null,
     };
   });
 }

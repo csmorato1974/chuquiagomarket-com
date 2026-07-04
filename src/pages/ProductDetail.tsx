@@ -63,11 +63,12 @@ const ProductDetail = () => {
 
   const onContact = () => {
     if (!waUrl || !id) return;
-    // Registro compatible con anónimos (user_id IS NULL). No bloquea si falla.
-    try {
-      supabase.from('lead_events').insert({ listing_id: id, user_id: user?.id ?? null, type: 'whatsapp_click' });
-    } catch {}
     window.open(waUrl, '_blank', 'noopener,noreferrer');
+    // Registro compatible con anónimos (user_id IS NULL). No bloquea si falla.
+    void supabase
+      .from('lead_events')
+      .insert({ listing_id: id, user_id: user?.id ?? null, type: 'whatsapp_click' })
+      .then(() => undefined, () => undefined);
   };
 
   if (loading) return <Layout><div className="container-market py-12">Cargando…</div></Layout>;
