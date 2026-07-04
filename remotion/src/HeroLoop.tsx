@@ -245,7 +245,10 @@ export const HeroLoop: React.FC = () => {
     Z
   `;
 
+  return (
+    <AbsoluteFill>
       {/* SKY sunset gradient */}
+
       <AbsoluteFill
         style={{
           background: `linear-gradient(180deg, ${SKY_TOP} 0%, ${SKY_MID} 55%, ${SKY_LOW} 100%)`,
