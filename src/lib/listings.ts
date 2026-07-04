@@ -1,8 +1,28 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Product, ListingStatus, Condition, DeliveryMethod } from '@/types/marketplace';
 
-export const publicImageUrl = (path: string) =>
-  supabase.storage.from('listing-images').getPublicUrl(path).data.publicUrl;
+const SIGN_TTL_SECONDS = 60 * 60; // 1h
+
+/** Normalize any legacy full URL into just the storage path. */
+export function toStoragePath(value: string): string {
+  const m = value.match(/\/listing-images\/(.+)$/);
+  return m ? m[1] : value;
+}
+
+/** Sign a single storage path in the listing-images bucket. Returns placeholder on failure. */
+export async function signedImageUrl(pathOrUrl: string): Promise<string> {
+  if (!pathOrUrl) return '/placeholder.svg';
+  const path = toStoragePath(pathOrUrl);
+  const { data } = await supabase.storage.from('listing-images').createSignedUrl(path, SIGN_TTL_SECONDS);
+  return data?.signedUrl ?? '/placeholder.svg';
+}
+
+async function signMany(paths: string[]): Promise<string[]> {
+  if (paths.length === 0) return [];
+  const normalized = paths.map(toStoragePath);
+  const { data } = await supabase.storage.from('listing-images').createSignedUrls(normalized, SIGN_TTL_SECONDS);
+  return normalized.map((_, i) => data?.[i]?.signedUrl ?? '/placeholder.svg');
+}
 
 type Row = {
   id: string;
@@ -25,19 +45,14 @@ type Row = {
   seller_verifications?: { status: string } | null;
 };
 
-export function mapListing(row: Row): Product {
-  const images = (row.listing_images ?? [])
-    .sort((a, b) => a.sort_order - b.sort_order)
-    .map((i) => publicImageUrl(i.path));
-  const cover = row.cover_image_url ? [row.cover_image_url] : [];
-  const imgs = images.length > 0 ? images : cover.length > 0 ? cover : ['/placeholder.svg'];
+function baseMap(row: Row, images: string[]): Product {
   return {
     id: row.id,
     title: row.title,
     description: row.description ?? '',
     price: Number(row.price_bs),
     category: row.categories?.slug ?? 'otros',
-    images: imgs,
+    images: images.length > 0 ? images : ['/placeholder.svg'],
     sellerId: row.seller_id,
     sellerName: row.profiles?.display_name || 'Vendedor',
     sellerVerified: row.seller_verifications?.status === 'verified',
@@ -49,6 +64,16 @@ export function mapListing(row: Row): Product {
     status: row.status,
     rejectionReason: row.rejection_reason ?? undefined,
   };
+}
+
+async function mapListing(row: Row): Promise<Product> {
+  const paths = (row.listing_images ?? [])
+    .slice()
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((i) => i.path);
+  const all = paths.length > 0 ? paths : row.cover_image_url ? [row.cover_image_url] : [];
+  const signed = await signMany(all);
+  return baseMap(row, signed);
 }
 
 const SELECT = `
@@ -84,7 +109,7 @@ export async function fetchPublishedListings(opts: { search?: string; categorySl
   let rows = (data as unknown as Row[]) ?? [];
   if (opts.categorySlug) rows = rows.filter((r) => r.categories?.slug === opts.categorySlug);
   rows = await hydrateSellers(rows);
-  return rows.map(mapListing);
+  return Promise.all(rows.map(mapListing));
 }
 
 export async function fetchListingById(id: string) {
@@ -101,6 +126,5 @@ export async function fetchMyListings() {
   const { data, error } = await supabase.from('listings').select(SELECT).eq('seller_id', user.id).order('created_at', { ascending: false });
   if (error) throw error;
   const rows = await hydrateSellers((data as unknown as Row[]) ?? []);
-  return rows.map(mapListing);
+  return Promise.all(rows.map(mapListing));
 }
-
