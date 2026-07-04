@@ -56,10 +56,24 @@ const SELECT = `
   delivery_methods, status, cover_image_url, rejection_reason,
   published_at, created_at, category_id,
   categories:category_id ( slug, name ),
-  listing_images ( path, sort_order ),
-  profiles:seller_id ( display_name ),
-  seller_verifications:seller_id ( status )
+  listing_images ( path, sort_order )
 `;
+
+async function hydrateSellers(rows: Row[]): Promise<Row[]> {
+  const ids = Array.from(new Set(rows.map((r) => r.seller_id)));
+  if (ids.length === 0) return rows;
+  const [{ data: profs }, { data: verifs }] = await Promise.all([
+    supabase.from('profiles').select('id, display_name').in('id', ids),
+    supabase.from('seller_verifications').select('user_id, status').in('user_id', ids),
+  ]);
+  const pMap = new Map((profs ?? []).map((p: { id: string; display_name: string }) => [p.id, p.display_name]));
+  const vMap = new Map((verifs ?? []).map((v: { user_id: string; status: string }) => [v.user_id, v.status]));
+  return rows.map((r) => ({
+    ...r,
+    profiles: pMap.has(r.seller_id) ? { display_name: pMap.get(r.seller_id) as string } : null,
+    seller_verifications: vMap.has(r.seller_id) ? { status: vMap.get(r.seller_id) as string } : null,
+  }));
+}
 
 export async function fetchPublishedListings(opts: { search?: string; categorySlug?: string | null; limit?: number } = {}) {
   let q = supabase.from('listings').select(SELECT).eq('status', 'published').order('published_at', { ascending: false });
@@ -69,13 +83,16 @@ export async function fetchPublishedListings(opts: { search?: string; categorySl
   if (error) throw error;
   let rows = (data as unknown as Row[]) ?? [];
   if (opts.categorySlug) rows = rows.filter((r) => r.categories?.slug === opts.categorySlug);
+  rows = await hydrateSellers(rows);
   return rows.map(mapListing);
 }
 
 export async function fetchListingById(id: string) {
   const { data, error } = await supabase.from('listings').select(SELECT).eq('id', id).maybeSingle();
   if (error) throw error;
-  return data ? mapListing(data as unknown as Row) : null;
+  if (!data) return null;
+  const [row] = await hydrateSellers([data as unknown as Row]);
+  return mapListing(row);
 }
 
 export async function fetchMyListings() {
@@ -83,5 +100,7 @@ export async function fetchMyListings() {
   if (!user) return [];
   const { data, error } = await supabase.from('listings').select(SELECT).eq('seller_id', user.id).order('created_at', { ascending: false });
   if (error) throw error;
-  return ((data as unknown as Row[]) ?? []).map(mapListing);
+  const rows = await hydrateSellers((data as unknown as Row[]) ?? []);
+  return rows.map(mapListing);
 }
+
