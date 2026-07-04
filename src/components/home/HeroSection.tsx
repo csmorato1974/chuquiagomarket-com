@@ -46,7 +46,9 @@ const HeroSection = () => {
               <MapPin className="h-3 w-3" /> La Paz · Beta
             </span>
             <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4">
-              Compra y vende en La Paz, fácil y seguro
+              Compra y vende en&nbsp;
+              <br />
+              La Paz, fácil y seguro
             </h1>
             <p className="text-base md:text-lg text-white/90 mb-6">
               Publica gratis en minutos. Encuentra productos cerca de ti,
