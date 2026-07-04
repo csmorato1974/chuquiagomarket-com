@@ -1,39 +1,40 @@
-## Objetivo
+# Rediseño del Illimani en el video del hero
 
-Rehacer el fondo animado del hero para que evoque claramente el **Illimani** (silueta realista al atardecer) en lugar de la actual línea genérica de montañas. Mantener paraguas flotantes, bokeh y overlay legibles.
+## Problema
+La silueta actual en `remotion/src/HeroLoop.tsx` dibuja un pico dominante y afilado desplazado a la derecha (x 1400–1600). Esto no coincide con la referencia — el Illimani real es un **macizo ancho y horizontal** con una **cresta cumbrera de varios picos nevados juntos** y hombros largos que descienden a los lados. Además, como el video se renderiza a 1920×1080 y se muestra con `object-cover`, en móvil (viewport angosto) el navegador recorta los laterales y la montaña, al estar a la derecha, **desaparece del encuadre**.
 
-Nota: en la iteración anterior ya se aplicó este cambio y el MP4 fue re-renderizado y subido. Este plan re-confirma la dirección por si quieres ajustar algún detalle antes de una nueva pasada.
+## Cambios
 
-## Cambios de dirección visual
+### 1. Redibujar la silueta según la referencia
+En `remotion/src/HeroLoop.tsx`, reemplazar `illimaniPath` y `snowPath`:
 
-- **Silueta del Illimani** al centro-derecha: tres cumbres características (Pico del Indio a la izq., Pico Central, Pico Sur dominante), con laderas largas cayendo hacia los flancos.
-- **Nieve sutil**: parches blanco cálido (`#F5EEDC`) sólo sobre las cumbres, con brillo alpenglow tenue (`#FFB27A` → `#FF8C55`) en el lado derecho por la luz del sol.
-- **Atmósfera de atardecer**:
-  - Cielo: gradiente `#F4C27A` → `#E88A5C` → `#B85A3E`.
-  - Sol bajo detrás del Pico Sur (glow radial ámbar semi-oculto por la cumbre).
-  - Neblina cálida horizontal entre cordillera lejana e Illimani.
-- **Capas de profundidad** (parallax lento, loop perfecto):
-  1. Cordillera Real lejana (`#7A6A8A`, opacidad 0.45).
-  2. Illimani nítido (`#2A2340`) con sombra en el flanco izquierdo.
-  3. Colinas urbanas de La Paz en primer término (`#0F0A1F`) con ventanas ámbar titilantes.
-- **Paraguas**: reducidos a 14 y confinados al lado izquierdo (`x < 0.55`) para no tapar la cumbre.
-- **Bokeh**: reducido a 24 partículas, tonos ámbar/blanco cálido.
-- **Vignette izquierda**: se conserva para legibilidad del copy.
+- **Macizo ancho y bajo**: base horizontal larga, cumbre a ~y=340 (no y=150). Menos altura, más anchura.
+- **Cresta cumbrera de 4–5 picos pequeños agrupados** en la parte superior, no un pico único puntiagudo. Espaciados en ~500px horizontales con variaciones sutiles de altura (el pico principal ligeramente a la derecha del centro, como en la foto).
+- **Hombros largos y suaves** que caen a ambos lados con quiebres tipo morrena (siluetas de aristas menores).
+- **Nieve dominante y ancha**: cubre casi toda la cresta y baja por canaletas verticales entre los picos (lenguas de glaciar), no solo un parche en la cima.
+- Silueta base color `#2A2340`; una capa intermedia azul-violeta (`#3B3560`) para las laderas medias que aparecen en la referencia; nieve `#F5EEDC` con alpenglow cálido encima.
 
-## Producción (skill video-creator)
+### 2. Recentrar para móvil
+Mover el macizo al **centro horizontal** (x ~480 → 1440, centro en ~960) en lugar de la derecha. Así, cuando `object-cover` recorta los laterales en móvil vertical, la montaña queda visible.
 
-1. Editar `remotion/src/HeroLoop.tsx` con los cambios anteriores; mantener 300 frames a 30fps, 1920×1080, loop sin costura.
-2. Spot-check con un frame extraído del render (`ffmpeg -ss 2 …`) para validar que el Illimani se lee.
-3. Renderizar con `node scripts/render-remotion.mjs` → `/mnt/documents/hero-loop.mp4`.
-4. Subir con `lovable-assets create` → sobrescribir `src/assets/hero-loop.mp4.asset.json`.
+- Reposicionar el sol para que quede detrás del pico principal en la nueva posición central.
+- Ajustar los paraguas: en vez de confinarlos a `x < 0.55`, confinarlos a **las bandas laterales** (`x < 0.28` o `x > 0.78`) para no cubrir el macizo central.
+- Ajustar el `vignette` izquierdo para que siga oscureciendo la zona del copy sin apagar la montaña.
 
-## Integración web
+### 3. Integración con el estilo gráfico
+Mantener el lenguaje visual actual (silueta plana, atardecer, bokeh cálido, paraguas flotantes). Añadir:
 
-- **Sin cambios** en `src/components/home/HeroSection.tsx` (ya usa `heroLoop.url`).
-- **Sin cambios** en `src/index.css`, textos, botones, badge ni layout.
+- Una **capa de ladera intermedia** con color `#3B3560` para dar volumen al macizo (como en la referencia, donde se ven planos azulados entre el negro y la nieve).
+- **Lenguas glaciares** verticales cortas (`#F5EEDC` @ 0.7) bajando desde la cresta para el look de nevado real.
 
-## Fuera de alcance
+### 4. Verificación
+- Spot-check con `bunx remotion still` en frame 0 y frame 150.
+- Re-render del MP4 completo a `/mnt/documents/hero-loop.mp4`.
+- Subir con `lovable-assets create` y actualizar `src/assets/hero-loop.mp4.asset.json`.
+- Probar visualmente el hero en viewport móvil (390px) para confirmar que la montaña se ve.
 
-- No se cambia `heroBanner.jpg` (poster/fallback de `prefers-reduced-motion`).
-- No se añaden librerías ni se toca lógica/backend.
-- Sin audio.
+## Archivos afectados
+- `remotion/src/HeroLoop.tsx` (rediseño de paths y reposicionamiento)
+- `src/assets/hero-loop.mp4.asset.json` (nuevo asset renderizado)
+
+No se tocan `HeroSection.tsx`, `index.css` ni otros componentes.

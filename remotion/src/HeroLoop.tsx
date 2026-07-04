@@ -29,14 +29,17 @@ type Umbrella = {
   amp: number;
 };
 
-// 14 umbrellas confined to the upper-left band (x < 0.55) so they don't cover the Illimani
+// 14 umbrellas confined to the lateral bands so they don't cover the central Illimani massif
 const UMBRELLAS: Umbrella[] = Array.from({ length: 14 }, (_, i) => {
   const rnd = (n: number) => {
     const x = Math.sin(i * 9973.13 + n * 131.7) * 43758.5453;
     return x - Math.floor(x);
   };
+  // Half on the left band (0..0.26), half on the right band (0.78..1)
+  const onLeft = i % 2 === 0;
+  const x = onLeft ? rnd(1) * 0.26 : 0.78 + rnd(1) * 0.22;
   return {
-    x: rnd(1) * 0.55,
+    x,
     y: 0.04 + rnd(2) * 0.28,
     size: 90 + rnd(3) * 130,
     color: UMBRELLA_COLORS[Math.floor(rnd(4) * UMBRELLA_COLORS.length)],
@@ -45,6 +48,7 @@ const UMBRELLAS: Umbrella[] = Array.from({ length: 14 }, (_, i) => {
     amp: 8 + rnd(7) * 22,
   };
 });
+
 
 type Bokeh = {
   x0: number;
@@ -121,76 +125,130 @@ export const HeroLoop: React.FC = () => {
   const cityParallax = Math.sin(tau * t) * 40;
   const camPan = Math.sin(tau * t) * 60;
 
-  // Illimani profile — three peaks as seen from La Paz.
-  // Baseline y=720. Left-to-right:
-  //   Pico del Indio (izq, más bajo)  → Pico Central → Pico Sur (dominante, derecha-centro) → hombro derecho
-  // Ancho horizontal aprox 900..1720
+  // Illimani — wide massif with a jagged summit ridge of several close peaks.
+  // Centered around x=960 so it remains visible when object-cover crops on mobile.
+  // Baseline y=780, summit ridge around y=310..390.
   const illimaniPath = `
-    M 700,720
-    L 820,660
-    L 900,600
-    L 980,540
-    L 1060,470
-    L 1120,430
-    L 1180,390
-    L 1240,320
-    L 1290,270
-    L 1340,220
-    L 1380,180
-    L 1420,150
-    L 1450,175
-    L 1480,215
-    L 1510,265
-    L 1540,235
-    L 1570,205
-    L 1600,235
-    L 1630,285
-    L 1670,345
-    L 1720,410
-    L 1780,485
-    L 1840,555
-    L 1900,620
-    L 1920,650
-    L 1920,1080
-    L 700,1080 Z
+    M -20,820
+    L 120,810
+    L 260,800
+    L 380,790
+    L 500,760
+    L 600,700
+    L 690,630
+    L 760,560
+    L 820,500
+    L 870,450
+    L 900,405
+    L 925,380
+    L 950,410
+    L 980,370
+    L 1005,345
+    L 1030,380
+    L 1055,340
+    L 1080,305
+    L 1105,330
+    L 1130,360
+    L 1160,335
+    L 1190,350
+    L 1220,330
+    L 1250,365
+    L 1285,390
+    L 1320,430
+    L 1360,475
+    L 1410,530
+    L 1470,600
+    L 1540,670
+    L 1620,725
+    L 1720,760
+    L 1820,780
+    L 1940,795
+    L 1940,1080
+    L -20,1080 Z
   `;
 
-  // Snow caps — only on the top of the peaks (above ~y=280)
+  // Mid-slope violet layer — gives the massif volume like in the reference photo
+  const illimaniMidPath = `
+    M 500,760
+    L 600,700
+    L 700,640
+    L 800,570
+    L 880,510
+    L 950,460
+    L 1020,430
+    L 1090,410
+    L 1170,420
+    L 1250,450
+    L 1330,500
+    L 1420,570
+    L 1520,640
+    L 1620,700
+    L 1720,740
+    L 1720,780
+    L 500,780 Z
+  `;
+
+  // Snow blanket — broad, covering the whole summit ridge with glacier tongues
   const snowPath = `
-    M 1180,395
-    L 1240,325
-    L 1290,275
-    L 1340,225
-    L 1380,185
-    L 1420,155
-    L 1450,180
-    L 1480,220
-    L 1510,270
-    L 1540,240
-    L 1570,210
-    L 1600,240
-    L 1630,290
-    L 1660,340
-    L 1640,335
-    L 1615,300
-    L 1590,275
-    L 1560,290
-    L 1530,315
-    L 1500,290
-    L 1475,255
-    L 1445,225
-    L 1415,255
-    L 1385,285
-    L 1355,320
-    L 1320,355
-    L 1280,390
-    L 1230,420
+    M 640,660
+    L 700,600
+    L 760,540
+    L 820,485
+    L 870,440
+    L 900,400
+    L 925,378
+    L 950,405
+    L 980,368
+    L 1005,343
+    L 1030,378
+    L 1055,338
+    L 1080,303
+    L 1105,328
+    L 1130,358
+    L 1160,333
+    L 1190,348
+    L 1220,328
+    L 1250,363
+    L 1285,388
+    L 1320,425
+    L 1360,470
+    L 1410,520
+    L 1460,575
+    L 1500,620
+    L 1470,625
+    L 1440,600
+    L 1410,635
+    L 1380,590
+    L 1350,555
+    L 1320,600
+    L 1290,555
+    L 1260,530
+    L 1230,570
+    L 1200,540
+    L 1170,505
+    L 1140,545
+    L 1110,510
+    L 1080,470
+    L 1050,510
+    L 1020,485
+    L 990,520
+    L 960,495
+    L 930,530
+    L 900,500
+    L 870,540
+    L 840,580
+    L 810,555
+    L 780,600
+    L 750,635
+    L 720,660
+    L 680,685
     Z
   `;
 
   return (
     <AbsoluteFill>
       {/* SKY sunset gradient */}
+
       <AbsoluteFill
         style={{
           background: `linear-gradient(180deg, ${SKY_TOP} 0%, ${SKY_MID} 55%, ${SKY_LOW} 100%)`,
@@ -202,8 +260,9 @@ export const HeroLoop: React.FC = () => {
         <div
           style={{
             position: "absolute",
-            left: `${72 + Math.sin(tau * t) * 0.4}%`,
-            top: `${44 + Math.cos(tau * t) * 0.6}%`,
+            left: `${56 + Math.sin(tau * t) * 0.4}%`,
+            top: `${40 + Math.cos(tau * t) * 0.6}%`,
+
             width: 420,
             height: 420,
             marginLeft: -210,
@@ -237,18 +296,21 @@ export const HeroLoop: React.FC = () => {
       {/* Illimani — silueta principal con nieve */}
       <svg width="1920" height="1080" viewBox="0 0 1920 1080" style={{ position: "absolute", inset: 0 }}>
         <g transform={`translate(${illimaniParallax} 0)`}>
-          {/* masa oscura */}
+          {/* masa oscura base */}
           <path d={illimaniPath} fill={ILLIMANI} />
-          {/* sombra lateral izquierda (dirección de la luz: sol al centro-derecha) */}
+          {/* ladera intermedia violeta (da volumen al macizo) */}
+          <path d={illimaniMidPath} fill="#3B3560" opacity={0.75} />
+          {/* sombra lateral izquierda (dirección de la luz: sol al centro) */}
           <path
             d={illimaniPath}
             fill="url(#illimaniShade)"
-            opacity={0.55}
+            opacity={0.5}
           />
-          {/* nieve */}
-          <path d={snowPath} fill={SNOW} opacity={0.9} />
-          {/* brillo cálido sobre nieve (alpenglow tenue) */}
-          <path d={snowPath} fill="url(#snowGlow)" opacity={0.6} />
+          {/* nieve — manto ancho con lenguas glaciares */}
+          <path d={snowPath} fill={SNOW} opacity={0.92} />
+          {/* brillo cálido sobre nieve (alpenglow) */}
+          <path d={snowPath} fill="url(#snowGlow)" opacity={0.55} />
+
         </g>
         <defs>
           <linearGradient id="illimaniShade" x1="0" y1="0" x2="1" y2="0">
