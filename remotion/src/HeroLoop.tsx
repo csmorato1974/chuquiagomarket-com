@@ -260,8 +260,9 @@ export const HeroLoop: React.FC = () => {
         <div
           style={{
             position: "absolute",
-            left: `${72 + Math.sin(tau * t) * 0.4}%`,
-            top: `${44 + Math.cos(tau * t) * 0.6}%`,
+            left: `${56 + Math.sin(tau * t) * 0.4}%`,
+            top: `${40 + Math.cos(tau * t) * 0.6}%`,
+
             width: 420,
             height: 420,
             marginLeft: -210,
