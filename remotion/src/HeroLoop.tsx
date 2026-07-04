@@ -296,18 +296,21 @@ export const HeroLoop: React.FC = () => {
       {/* Illimani — silueta principal con nieve */}
       <svg width="1920" height="1080" viewBox="0 0 1920 1080" style={{ position: "absolute", inset: 0 }}>
         <g transform={`translate(${illimaniParallax} 0)`}>
-          {/* masa oscura */}
+          {/* masa oscura base */}
           <path d={illimaniPath} fill={ILLIMANI} />
-          {/* sombra lateral izquierda (dirección de la luz: sol al centro-derecha) */}
+          {/* ladera intermedia violeta (da volumen al macizo) */}
+          <path d={illimaniMidPath} fill="#3B3560" opacity={0.75} />
+          {/* sombra lateral izquierda (dirección de la luz: sol al centro) */}
           <path
             d={illimaniPath}
             fill="url(#illimaniShade)"
-            opacity={0.55}
+            opacity={0.5}
           />
-          {/* nieve */}
-          <path d={snowPath} fill={SNOW} opacity={0.9} />
-          {/* brillo cálido sobre nieve (alpenglow tenue) */}
-          <path d={snowPath} fill="url(#snowGlow)" opacity={0.6} />
+          {/* nieve — manto ancho con lenguas glaciares */}
+          <path d={snowPath} fill={SNOW} opacity={0.92} />
+          {/* brillo cálido sobre nieve (alpenglow) */}
+          <path d={snowPath} fill="url(#snowGlow)" opacity={0.55} />
+
         </g>
         <defs>
           <linearGradient id="illimaniShade" x1="0" y1="0" x2="1" y2="0">
