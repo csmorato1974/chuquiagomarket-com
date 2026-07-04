@@ -29,14 +29,17 @@ type Umbrella = {
   amp: number;
 };
 
-// 14 umbrellas confined to the upper-left band (x < 0.55) so they don't cover the Illimani
+// 14 umbrellas confined to the lateral bands so they don't cover the central Illimani massif
 const UMBRELLAS: Umbrella[] = Array.from({ length: 14 }, (_, i) => {
   const rnd = (n: number) => {
     const x = Math.sin(i * 9973.13 + n * 131.7) * 43758.5453;
     return x - Math.floor(x);
   };
+  // Half on the left band (0..0.26), half on the right band (0.78..1)
+  const onLeft = i % 2 === 0;
+  const x = onLeft ? rnd(1) * 0.26 : 0.78 + rnd(1) * 0.22;
   return {
-    x: rnd(1) * 0.55,
+    x,
     y: 0.04 + rnd(2) * 0.28,
     size: 90 + rnd(3) * 130,
     color: UMBRELLA_COLORS[Math.floor(rnd(4) * UMBRELLA_COLORS.length)],
@@ -45,6 +48,7 @@ const UMBRELLAS: Umbrella[] = Array.from({ length: 14 }, (_, i) => {
     amp: 8 + rnd(7) * 22,
   };
 });
+
 
 type Bokeh = {
   x0: number;
