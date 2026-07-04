@@ -6,10 +6,13 @@ import heroBanner from '@/assets/hero-banner.jpg';
 const HeroSection = () => {
   return (
     <section className="relative w-full">
-      <div
-        className="relative w-full min-h-[380px] md:min-h-[460px] bg-cover bg-center"
-        style={{ backgroundImage: `url(${heroBanner})` }}
-      >
+      <div className="relative w-full min-h-[380px] md:min-h-[460px] overflow-hidden">
+        {/* Fondo animado (Ken Burns) */}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-cover bg-center hero-kenburns"
+          style={{ backgroundImage: `url(${heroBanner})` }}
+        />
         {/* Overlay legible sin cubrir la foto */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
 
