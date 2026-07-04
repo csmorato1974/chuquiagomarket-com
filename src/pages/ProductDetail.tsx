@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Breadcrumbs from '@/components/layout/Breadcrumbs';
 import SafetyNotice from '@/components/trust/SafetyNotice';
 import VerifiedBadge from '@/components/trust/VerifiedBadge';
