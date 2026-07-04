@@ -26,6 +26,7 @@ export interface Product {
   sellerId: string;
   sellerName: string;
   sellerVerified?: boolean;
+  sellerWhatsapp?: string;
   createdAt: Date;
   publishedAt?: Date;
   location: string;
@@ -34,6 +35,17 @@ export interface Product {
   status: ListingStatus;
   rejectionReason?: string;
   freeShipping?: boolean;
+  pickupAddress?: string;
+  pickupMapsUrl?: string;
+}
+
+export interface SellerPublic {
+  id: string;
+  displayName: string;
+  avatarUrl?: string;
+  zone?: string;
+  whatsappPhone?: string;
+  verified: boolean;
 }
 
 export interface ListingFlag {
