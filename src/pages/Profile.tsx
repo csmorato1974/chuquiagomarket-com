@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -7,11 +7,12 @@ import { Label } from '@/components/ui/label';
 import { ListingStatus, Product } from '@/types/marketplace';
 import { STATUS_LABEL, STATUS_COLOR, formatDate } from '@/lib/format';
 import VerifiedBadge from '@/components/trust/VerifiedBadge';
-import { User, Mail, Calendar, Plus, Settings, BadgeCheck, Phone } from 'lucide-react';
+import { User, Mail, Calendar, Plus, Settings, BadgeCheck, Phone, Camera, Trash2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchMyListings } from '@/lib/listings';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizePhone, isValidPhone } from '@/lib/whatsapp';
+import { uploadAvatar, getAvatarSignedUrl, removeAvatar, validateAvatarFile, ACCEPTED_AVATAR_TYPES } from '@/lib/avatars';
 import { toast } from 'sonner';
 
 const STATUSES: (ListingStatus | 'all')[] = ['all','published','pending_review','draft','paused','sold','rejected','archived'];
@@ -24,17 +25,26 @@ const Profile = () => {
   const [verified, setVerified] = useState(false);
   const [phone, setPhone] = useState('');
   const [savingPhone, setSavingPhone] = useState(false);
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       const [{ data: prof }, { data: verif }, mine] = await Promise.all([
-        supabase.from('profiles').select('display_name, whatsapp_phone').eq('id', user.id).maybeSingle(),
+        supabase.from('profiles').select('display_name, whatsapp_phone, avatar_url').eq('id', user.id).maybeSingle(),
         supabase.from('seller_verifications').select('status').eq('user_id', user.id).maybeSingle(),
         fetchMyListings(),
       ]);
       setDisplayName(prof?.display_name || user.email?.split('@')[0] || 'Usuario');
-      setPhone((prof as { whatsapp_phone?: string | null } | null)?.whatsapp_phone ?? '');
+      const p = prof as { whatsapp_phone?: string | null; avatar_url?: string | null } | null;
+      setPhone(p?.whatsapp_phone ?? '');
+      const path = p?.avatar_url ?? null;
+      setAvatarPath(path);
+      setAvatarUrl(await getAvatarSignedUrl(path));
       setVerified(verif?.status === 'verified');
       setListings(mine);
     })();
@@ -55,6 +65,54 @@ const Profile = () => {
     toast.success('Teléfono guardado');
   };
 
+  const onPickFile = () => fileInputRef.current?.click();
+
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !user) return;
+    const check = validateAvatarFile(file);
+    if (!check.ok) return toast.error(check.error!);
+    const localPreview = URL.createObjectURL(file);
+    setPreviewUrl(localPreview);
+    setUploadingAvatar(true);
+    try {
+      const oldPath = avatarPath;
+      const path = await uploadAvatar(user.id, file);
+      const { error } = await supabase.from('profiles').update({ avatar_url: path }).eq('id', user.id);
+      if (error) throw error;
+      setAvatarPath(path);
+      setAvatarUrl(await getAvatarSignedUrl(path));
+      if (oldPath && oldPath !== path) await removeAvatar(oldPath);
+      toast.success('Foto actualizada');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo subir la imagen');
+    } finally {
+      setPreviewUrl(null);
+      URL.revokeObjectURL(localPreview);
+      setUploadingAvatar(false);
+    }
+  };
+
+  const onRemoveAvatar = async () => {
+    if (!user || !avatarPath) return;
+    setUploadingAvatar(true);
+    try {
+      const { error } = await supabase.from('profiles').update({ avatar_url: null }).eq('id', user.id);
+      if (error) throw error;
+      await removeAvatar(avatarPath);
+      setAvatarPath(null);
+      setAvatarUrl(null);
+      toast.success('Foto eliminada');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo eliminar la imagen');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const shownAvatar = previewUrl ?? avatarUrl;
+
   const visible = filter === 'all' ? listings : listings.filter((p) => p.status === filter);
   const joinedAt = user?.created_at ? new Date(user.created_at) : new Date();
 
@@ -63,8 +121,12 @@ const Profile = () => {
       <div className="container-market py-8 md:py-12">
         <div className="bg-card rounded-2xl border p-6 md:p-8 mb-8">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="h-10 w-10 md:h-12 md:w-12 text-primary" />
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+              {shownAvatar ? (
+                <img src={shownAvatar} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                <User className="h-10 w-10 md:h-12 md:w-12 text-primary" />
+              )}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -83,6 +145,43 @@ const Profile = () => {
             </div>
           </div>
         </div>
+
+        <div className="bg-card rounded-2xl border p-6 mb-8">
+          <div className="flex items-center gap-2 mb-1">
+            <Camera className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-bold">Foto de perfil</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Se muestra en tu perfil público y a los compradores. PNG, JPG o WEBP, hasta 3 MB.
+          </p>
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+              {shownAvatar ? (
+                <img src={shownAvatar} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                <User className="h-8 w-8 text-primary" />
+              )}
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button type="button" variant="outline" onClick={onPickFile} disabled={uploadingAvatar}>
+                <Camera className="h-4 w-4" /> {avatarPath ? 'Cambiar foto' : 'Subir foto'}
+              </Button>
+              {avatarPath && (
+                <Button type="button" variant="ghost" onClick={onRemoveAvatar} disabled={uploadingAvatar}>
+                  <Trash2 className="h-4 w-4" /> Quitar
+                </Button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPTED_AVATAR_TYPES.join(',')}
+                onChange={onFileChange}
+                className="hidden"
+              />
+            </div>
+          </div>
+        </div>
+
 
         <div className="bg-card rounded-2xl border p-6 mb-8">
           <div className="flex items-center gap-2 mb-1">

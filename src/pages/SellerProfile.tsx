@@ -8,11 +8,13 @@ import VerifiedBadge from '@/components/trust/VerifiedBadge';
 import { fetchListingsBySeller, fetchSellerPublic } from '@/lib/listings';
 import { Product, SellerPublic } from '@/types/marketplace';
 import { buildWaUrl } from '@/lib/whatsapp';
+import { getAvatarSignedUrl } from '@/lib/avatars';
 import { MapPin, MessageCircle, Store, User } from 'lucide-react';
 
 const SellerProfile = () => {
   const { sellerId } = useParams<{ sellerId: string }>();
   const [seller, setSeller] = useState<SellerPublic | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,6 +27,7 @@ const SellerProfile = () => {
       ]);
       setSeller(s);
       setProducts(list);
+      setAvatarUrl(await getAvatarSignedUrl(s?.avatarUrl ?? null));
       setLoading(false);
     })();
   }, [sellerId]);
@@ -59,8 +62,8 @@ const SellerProfile = () => {
         <div className="bg-card rounded-2xl border p-6 md:p-8 mb-8">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
             <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-              {seller.avatarUrl ? (
-                <img src={seller.avatarUrl} alt={seller.displayName} className="w-full h-full object-cover" />
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={seller.displayName} className="w-full h-full object-cover" />
               ) : (
                 <User className="h-10 w-10 md:h-12 md:w-12 text-primary" />
               )}
