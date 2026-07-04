@@ -165,7 +165,7 @@ const ProductDetail = () => {
                 <Button size="lg" variant="outline" className="flex-1" onClick={toggleFavorite}>
                   <Heart className={`h-5 w-5 ${isFavorite ? 'fill-deal text-deal' : ''}`} /> {isFavorite ? 'Guardado' : 'Guardar'}
                 </Button>
-                <Button size="lg" variant="outline" className="flex-1"><Share2 className="h-5 w-5" /> Compartir</Button>
+                <Button size="lg" variant="outline" className="flex-1" onClick={onShare}><Share2 className="h-5 w-5" /> Compartir</Button>
               </div>
             </div>
 
