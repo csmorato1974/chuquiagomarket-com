@@ -1,91 +1,30 @@
 ## Objetivo
 
-Añadir mejoras funcionales de cuenta y autenticación sin cambios de diseño: avatar de perfil (Storage privado + signed URLs), toggle mostrar/ocultar contraseña, y flujo completo de recuperación de contraseña.
+Que la imagen del hero de la home deje de sentirse estática, manteniendo el mismo diseño, textos, botones y overlay actuales. Sin dependencias nuevas y sin sustituir la imagen.
 
-**Bucket `avatars` ya creado (privado) y policies RLS ya aplicadas** (SELECT abierto para `anon`+`authenticated` solo sobre `bucket_id='avatars'`; INSERT/UPDATE/DELETE restringidos al dueño por `{uid}/...`).
+## Enfoque
 
----
+Aplicar un **efecto Ken Burns** (zoom + paneo muy lento e infinito) sobre `hero-banner.jpg`, usando solo CSS. Es la solución más ligera, no consume red, funciona offline y no afecta rendimiento en móvil.
 
-## 1. Avatar de perfil
+- Duración: ~20s por ciclo, `ease-in-out`, `alternate infinite` (va y vuelve, sin saltos).
+- Movimiento: zoom de `scale(1)` a `scale(1.08)` con leve desplazamiento horizontal.
+- Se respeta `prefers-reduced-motion: reduce` → la animación se desactiva para usuarios que piden menos movimiento (accesibilidad).
+- Overlay oscuro y contenido (badge, título, párrafo, botones) se mantienen intactos y por encima.
 
-### Storage y DB
-- Bucket privado `avatars` (ya creado).
-- `profiles.avatar_url` guarda **solo el path** (`{userId}/{timestamp}.{ext}`), nunca URL pública.
-- Frontend firma con `createSignedUrl` (TTL 1h) al mostrar.
+## Cambios técnicos
 
-### Nuevo helper `src/lib/avatars.ts`
-- `MAX_AVATAR_BYTES = 3MB`, `ACCEPTED_AVATAR_TYPES = ['image/png','image/jpeg','image/webp']`.
-- `validateAvatarFile(file)`, `uploadAvatar(userId, file)`, `getAvatarSignedUrl(path)`, `removeAvatar(path)`.
+1. **`src/components/home/HeroSection.tsx`**
+   - Separar la imagen de fondo en un `div` absoluto propio (`absolute inset-0`) con `bg-cover bg-center` + clase `hero-kenburns`, en lugar de aplicar `backgroundImage` al contenedor principal.
+   - Añadir `overflow-hidden` al contenedor para contener el zoom.
+   - Overlay y contenido quedan encima con `z-10`, sin cambios visuales.
 
-### `src/pages/Profile.tsx`
-- Nueva sección “Foto de perfil” encima de “Datos de contacto”, reutilizando `bg-card rounded-2xl border p-6`.
-- Avatar circular (mismo estilo actual). Botones: “Cambiar foto”, “Quitar foto”.
-- `<input type="file" hidden>` con validación de tipo y tamaño.
-- Preview inmediata con `URL.createObjectURL` antes de subir.
-- Al subir: `uploadAvatar` → `update profiles set avatar_url = path` → refresca signed URL.
-- Al quitar: `removeAvatar` + `avatar_url = null`.
-
-### `src/pages/SellerProfile.tsx` y `src/lib/listings.ts`
-- `fetchSellerPublic` devuelve el path crudo; `SellerProfile` firma con `getAvatarSignedUrl` antes de renderizar. Sin cambios visuales.
-
----
-
-## 2. Mostrar/ocultar contraseña
-
-En `src/pages/Auth.tsx`:
-- Botón `type="button"` dentro del input password, a la derecha, con `Eye` / `EyeOff` de `lucide-react`.
-- Estado local `showPassword` alterna `type` entre `password`/`text`.
-- `aria-label` dinámico, `aria-pressed`, área táctil 40×40. Sin cambios de layout.
-- Mismo toggle en `ResetPassword.tsx`.
-
----
-
-## 3. Recuperación de contraseña
-
-### Enlace en login
-- En `Auth.tsx` (modo login) enlace “¿Olvidaste tu contraseña?” → `/recuperar`.
-
-### Nueva ruta pública `/recuperar` → `src/pages/ForgotPassword.tsx`
-- Input email + botón. Llama a `supabase.auth.resetPasswordForEmail(email, { redirectTo: \`${window.location.origin}/restablecer\` })`.
-- Mensaje neutral tras enviar (“Si el email existe, te enviamos un enlace”).
-
-### Nueva ruta pública `/restablecer` → `src/pages/ResetPassword.tsx`
-- Escucha `onAuthStateChange` para evento `PASSWORD_RECOVERY` (Supabase JS parsea el hash automáticamente).
-- Dos inputs (nueva contraseña + confirmar) con toggle mostrar/ocultar.
-- Validación: ≥ 8 caracteres y coincidencia.
-- `supabase.auth.updateUser({ password })` → `signOut()` → redirect a `/auth`.
-- Estado “enlace inválido/expirado” con botón para volver a `/recuperar`.
-
-### Rutas en `App.tsx`
-- `/recuperar` y `/restablecer` como rutas públicas.
-
-### Configuración en el backend (Cloud → Auth → URL Configuration)
-Añadir a **Redirect URLs**:
-- `https://chuquiagomarket-com.lovable.app/restablecer`
-- `https://id-preview--55ffa42a-5007-4578-9075-71ad9f25ab3d.lovable.app/restablecer`
-- `http://localhost:8080/restablecer`
-
-**Site URL** debe apuntar al dominio de producción.
-
----
-
-## Archivos
-
-**Nuevos:**
-- `src/lib/avatars.ts`
-- `src/pages/ForgotPassword.tsx`
-- `src/pages/ResetPassword.tsx`
-
-**Modificados:**
-- `src/pages/Profile.tsx` (sección avatar)
-- `src/pages/Auth.tsx` (toggle password + enlace “¿Olvidaste tu contraseña?”)
-- `src/pages/SellerProfile.tsx` (firmar avatar path)
-- `src/App.tsx` (2 rutas nuevas)
-
----
+2. **`src/index.css`**
+   - Añadir un `@keyframes kenburns` (scale + translate).
+   - Clase `.hero-kenburns { animation: kenburns 20s ease-in-out infinite alternate; transform-origin: center; will-change: transform; }`.
+   - Regla `@media (prefers-reduced-motion: reduce) { .hero-kenburns { animation: none; } }`.
 
 ## Fuera de alcance
-- No cambios de diseño.
-- No dependencias nuevas.
-- No buckets públicos.
-- Solo lectura anon sobre `storage.objects` para el bucket `avatars` (ya aplicada).
+
+- No se cambia la imagen del hero ni se generan videos.
+- No se tocan textos, botones, badge ni overlay.
+- No se añaden librerías (nada de Framer/GSAP/Remotion).
