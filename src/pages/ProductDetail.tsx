@@ -56,9 +56,14 @@ const ProductDetail = () => {
     }
   };
 
+  const waUrl = product?.sellerWhatsapp
+    ? buildWaUrl(product.sellerWhatsapp, buildListingMessage(product.title, typeof window !== 'undefined' ? window.location.href : undefined))
+    : null;
+
   const onContact = () => {
-    if (id) supabase.from('lead_events').insert({ listing_id: id, user_id: user?.id ?? null, type: 'contact_click' });
-    toast.info('Función de mensajería próximamente.');
+    if (!waUrl || !id) return;
+    supabase.from('lead_events').insert({ listing_id: id, user_id: user?.id ?? null, type: 'whatsapp_click' });
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
   if (loading) return <Layout><div className="container-market py-12">Cargando…</div></Layout>;
