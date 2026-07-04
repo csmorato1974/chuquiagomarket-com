@@ -1,38 +1,22 @@
 ## Problema
 
-Al abrir un producto desde /admin/moderacion la ficha no carga. La red muestra:
+Las imágenes de los anuncios no cargan. El bucket `listing-images` está en modo **privado**, pero en el código (`src/lib/listings.ts` y `src/pages/Publish.tsx`) usamos `supabase.storage.from('listing-images').getPublicUrl(...)`, que solo funciona con buckets públicos. El resultado: URLs `.../object/public/listing-images/...` que devuelven 400 y la ficha muestra el placeholder.
 
-```
-PGRST200: Could not find a relationship between 'listings' and 'seller_id'
-```
+## Solución
 
-`listings.seller_id` tiene FK a `auth.users`, no a `profiles` ni `seller_verifications`. Por eso los embeds `profiles:seller_id(...)` y `seller_verifications:seller_id(...)` en `src/lib/listings.ts` fallan con 400 en todas las páginas que usan `fetchListingById`, `fetchPublishedListings` y `fetchMyListings` (Home, Products, ProductDetail, Profile).
+Hacer público el bucket `listing-images` (marketplace: las imágenes de anuncios están pensadas para ser visibles a cualquier visitante). Se hace con `supabase--storage_update_bucket` — sin migración.
 
-## Solución (solo frontend, sin migración)
+`verification-docs` se mantiene **privado** (documentos sensibles).
 
-Editar `src/lib/listings.ts`:
-
-1. Quitar los embeds problemáticos del `SELECT`:
-   ```
-   profiles:seller_id ( display_name )
-   seller_verifications:seller_id ( status )
-   ```
-   Dejar solo `categories:category_id(...)` y `listing_images(...)`, que sí tienen FK válidas.
-
-2. Tras obtener las filas de `listings`, hacer dos consultas auxiliares en paralelo (`in('id', sellerIds)` y `in('user_id', sellerIds)`) contra `profiles` y `seller_verifications`, e inyectar `display_name` y `status` en cada row antes de pasarlas a `mapListing`.
-
-3. Aplicar el mismo helper en las tres funciones: `fetchPublishedListings`, `fetchListingById` (con un solo id), `fetchMyListings`.
-
-4. Mantener firma de `mapListing` y el tipo `Row` — solo cambia cómo se rellenan `profiles` y `seller_verifications`.
+No hace falta tocar código: `getPublicUrl` empezará a devolver URLs válidas y las imágenes ya guardadas (incluida la del anuncio `2b87e09e…`) cargarán.
 
 ## Verificación
 
-- Abrir `/producto/2b87e09e-…` desde /admin/moderacion → la ficha carga con título, precio, nombre del vendedor y badge de verificación si aplica.
-- Home y /productos vuelven a listar sin 400.
-- /perfil muestra "Mis anuncios" del usuario autenticado.
-- Sin cambios en diseño, RLS ni esquema.
+- Recargar `/producto/2b87e09e-…` → se ve la foto de portada.
+- Home y `/productos` muestran miniaturas.
+- El upload desde `/publicar` sigue funcionando (la política de INSERT del bucket no cambia).
 
 ## Fuera de alcance
 
-- No se añaden FKs nuevas a `profiles`/`seller_verifications` (evita migración y mantener compatibilidad).
-- No se toca moderación ni ningún otro flujo.
+- No se toca `verification-docs`.
+- No se cambia diseño ni RLS.
