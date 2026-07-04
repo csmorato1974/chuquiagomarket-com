@@ -1,14 +1,15 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 
-// La Paz market drift — 10s seamless loop, no text.
-// Palette
-const SKY_TOP = "#F8D6A3";
-const SKY_MID = "#F0B27A";
-const SKY_LOW = "#D97757";
-const MOUNTAIN_FAR = "#3B4E7A";
-const MOUNTAIN_NEAR = "#1E2A47";
-const BUILDINGS = "#0F172A";
+// La Paz — Illimani sunset drift — 10s seamless loop, no text.
+// Palette (atardecer paceño)
+const SKY_TOP = "#F4C27A";
+const SKY_MID = "#E88A5C";
+const SKY_LOW = "#B85A3E";
+const RANGE_FAR = "#7A6A8A"; // Cordillera Real lejana
+const ILLIMANI = "#2A2340"; // Masa principal
+const SNOW = "#F5EEDC";
+const CITY = "#0F0A1F";
 const ACCENT_WARM = "#F59E0B";
 
 const UMBRELLA_COLORS = [
@@ -16,31 +17,31 @@ const UMBRELLA_COLORS = [
   "#EC4899", "#F97316", "#06B6D4", "#FACC15", "#22C55E",
 ];
 
-// Loop helpers — every function has period = durationInFrames
 const tau = Math.PI * 2;
 
 type Umbrella = {
-  x: number;      // 0..1 horizontal
-  y: number;      // 0..1 vertical (top area)
-  size: number;   // px
+  x: number;
+  y: number;
+  size: number;
   color: string;
-  phase: number;  // 0..1
-  speed: number;  // integer cycles per loop
-  amp: number;    // sway amplitude px
+  phase: number;
+  speed: number;
+  amp: number;
 };
 
-const UMBRELLAS: Umbrella[] = Array.from({ length: 22 }, (_, i) => {
+// 14 umbrellas confined to the upper-left band (x < 0.55) so they don't cover the Illimani
+const UMBRELLAS: Umbrella[] = Array.from({ length: 14 }, (_, i) => {
   const rnd = (n: number) => {
     const x = Math.sin(i * 9973.13 + n * 131.7) * 43758.5453;
     return x - Math.floor(x);
   };
   return {
-    x: rnd(1),
-    y: 0.05 + rnd(2) * 0.35,
-    size: 90 + rnd(3) * 140,
+    x: rnd(1) * 0.55,
+    y: 0.04 + rnd(2) * 0.28,
+    size: 90 + rnd(3) * 130,
     color: UMBRELLA_COLORS[Math.floor(rnd(4) * UMBRELLA_COLORS.length)],
     phase: rnd(5),
-    speed: 1 + Math.floor(rnd(6) * 2), // 1 or 2 cycles per loop → seamless
+    speed: 1 + Math.floor(rnd(6) * 2),
     amp: 8 + rnd(7) * 22,
   };
 });
@@ -57,7 +58,7 @@ type Bokeh = {
   alpha: number;
 };
 
-const BOKEH: Bokeh[] = Array.from({ length: 34 }, (_, i) => {
+const BOKEH: Bokeh[] = Array.from({ length: 24 }, (_, i) => {
   const rnd = (n: number) => {
     const x = Math.sin(i * 1234.5 + n * 77.3) * 43758.5453;
     return x - Math.floor(x);
@@ -65,21 +66,18 @@ const BOKEH: Bokeh[] = Array.from({ length: 34 }, (_, i) => {
   return {
     x0: rnd(1),
     y0: rnd(2),
-    r: 4 + rnd(3) * 18,
-    color: rnd(4) > 0.5 ? "#FFFFFF" : ACCENT_WARM,
+    r: 4 + rnd(3) * 16,
+    color: rnd(4) > 0.4 ? ACCENT_WARM : "#FFF5E1",
     phase: rnd(5),
     speed: 1 + Math.floor(rnd(6) * 2),
     driftX: (rnd(7) - 0.5) * 120,
     driftY: (rnd(8) - 0.5) * 80,
-    alpha: 0.15 + rnd(9) * 0.45,
+    alpha: 0.18 + rnd(9) * 0.4,
   };
 });
 
-const Umbrella: React.FC<{ u: Umbrella; frame: number; total: number; parallax: number }> = ({
-  u,
-  frame,
-  total,
-  parallax,
+const UmbrellaNode: React.FC<{ u: Umbrella; frame: number; total: number; parallax: number }> = ({
+  u, frame, total, parallax,
 }) => {
   const t = frame / total;
   const sway = Math.sin(tau * (t * u.speed + u.phase)) * u.amp;
@@ -92,12 +90,9 @@ const Umbrella: React.FC<{ u: Umbrella; frame: number; total: number; parallax: 
 
   return (
     <g transform={`translate(${cx} ${cy}) rotate(${rot})`}>
-      {/* string */}
       <line x1={0} y1={0} x2={0} y2={-260} stroke="#111827" strokeWidth={1.2} opacity={0.35} />
-      {/* canopy */}
       <ellipse cx={0} cy={0} rx={w / 2} ry={h} fill={u.color} />
       <ellipse cx={0} cy={-h * 0.15} rx={w / 2} ry={h} fill="#000" opacity={0.08} />
-      {/* ribs */}
       {[-0.66, -0.33, 0, 0.33, 0.66].map((f, i) => (
         <line
           key={i}
@@ -110,7 +105,6 @@ const Umbrella: React.FC<{ u: Umbrella; frame: number; total: number; parallax: 
           strokeWidth={1}
         />
       ))}
-      {/* tip */}
       <circle cx={0} cy={h * 0.15} r={3} fill="#111827" opacity={0.6} />
     </g>
   );
@@ -121,99 +115,170 @@ export const HeroLoop: React.FC = () => {
   const { durationInFrames } = useVideoConfig();
   const t = frame / durationInFrames;
 
-  // Slow drifting sky
   const skyShift = Math.sin(tau * t) * 40;
-
-  // Mountain parallax (very slow)
-  const mtnParallax1 = Math.sin(tau * t) * 20;
-  const mtnParallax2 = Math.sin(tau * t + 0.5) * 32;
-
-  // Umbrella parallax band drifts as camera "pans"
+  const rangeParallax = Math.sin(tau * t) * 14;
+  const illimaniParallax = Math.sin(tau * t + 0.5) * 8; // subtle — mountain is anchor
+  const cityParallax = Math.sin(tau * t) * 40;
   const camPan = Math.sin(tau * t) * 60;
+
+  // Illimani profile — three peaks as seen from La Paz.
+  // Baseline y=720. Left-to-right:
+  //   Pico del Indio (izq, más bajo)  → Pico Central → Pico Sur (dominante, derecha-centro) → hombro derecho
+  // Ancho horizontal aprox 900..1720
+  const illimaniPath = `
+    M 700,720
+    L 820,660
+    L 900,600
+    L 980,540
+    L 1060,470
+    L 1120,430
+    L 1180,390
+    L 1240,320
+    L 1290,270
+    L 1340,220
+    L 1380,180
+    L 1420,150
+    L 1450,175
+    L 1480,215
+    L 1510,265
+    L 1540,235
+    L 1570,205
+    L 1600,235
+    L 1630,285
+    L 1670,345
+    L 1720,410
+    L 1780,485
+    L 1840,555
+    L 1900,620
+    L 1920,650
+    L 1920,1080
+    L 700,1080 Z
+  `;
+
+  // Snow caps — only on the top of the peaks (above ~y=280)
+  const snowPath = `
+    M 1180,395
+    L 1240,325
+    L 1290,275
+    L 1340,225
+    L 1380,185
+    L 1420,155
+    L 1450,180
+    L 1480,220
+    L 1510,270
+    L 1540,240
+    L 1570,210
+    L 1600,240
+    L 1630,290
+    L 1660,340
+    L 1640,335
+    L 1615,300
+    L 1590,275
+    L 1560,290
+    L 1530,315
+    L 1500,290
+    L 1475,255
+    L 1445,225
+    L 1415,255
+    L 1385,285
+    L 1355,320
+    L 1320,355
+    L 1280,390
+    L 1230,420
+    Z
+  `;
 
   return (
     <AbsoluteFill>
-      {/* SKY */}
+      {/* SKY sunset gradient */}
       <AbsoluteFill
         style={{
-          background: `linear-gradient(180deg, ${SKY_TOP} 0%, ${SKY_MID} 45%, ${SKY_LOW} 100%)`,
+          background: `linear-gradient(180deg, ${SKY_TOP} 0%, ${SKY_MID} 55%, ${SKY_LOW} 100%)`,
         }}
       />
 
-      {/* Soft sun glow, right side */}
+      {/* Sol bajo detrás del Pico Sur del Illimani */}
       <AbsoluteFill>
         <div
           style={{
             position: "absolute",
-            right: `${18 + Math.sin(tau * t) * 2}%`,
-            top: `${22 + Math.cos(tau * t) * 1.5}%`,
-            width: 520,
-            height: 520,
+            left: `${72 + Math.sin(tau * t) * 0.4}%`,
+            top: `${44 + Math.cos(tau * t) * 0.6}%`,
+            width: 420,
+            height: 420,
+            marginLeft: -210,
+            marginTop: -210,
             borderRadius: "50%",
             background:
-              "radial-gradient(circle, rgba(255,236,180,0.85) 0%, rgba(255,180,120,0.35) 40%, rgba(255,150,90,0) 70%)",
-            filter: "blur(4px)",
+              "radial-gradient(circle, rgba(255,236,180,0.95) 0%, rgba(255,180,110,0.55) 35%, rgba(255,140,80,0.15) 60%, rgba(255,120,70,0) 75%)",
+            filter: "blur(2px)",
           }}
         />
       </AbsoluteFill>
 
-      {/* Distant mountain silhouettes */}
-      <svg
-        width="1920"
-        height="1080"
-        viewBox="0 0 1920 1080"
-        style={{ position: "absolute", inset: 0 }}
-      >
-        <g transform={`translate(${mtnParallax1} ${skyShift * 0.1})`}>
+      {/* Cordillera Real lejana (muy tenue) */}
+      <svg width="1920" height="1080" viewBox="0 0 1920 1080" style={{ position: "absolute", inset: 0 }}>
+        <g transform={`translate(${rangeParallax} ${skyShift * 0.08})`} opacity={0.45}>
           <path
-            d="M0,720 L180,560 L340,640 L520,500 L700,600 L900,470 L1080,590 L1260,510 L1460,610 L1660,530 L1920,620 L1920,1080 L0,1080 Z"
-            fill={MOUNTAIN_FAR}
-            opacity={0.85}
-          />
-        </g>
-        <g transform={`translate(${mtnParallax2} 0)`}>
-          <path
-            d="M0,820 L160,720 L300,780 L460,660 L640,760 L820,700 L1000,780 L1200,680 L1400,770 L1620,700 L1920,780 L1920,1080 L0,1080 Z"
-            fill={MOUNTAIN_NEAR}
-            opacity={0.95}
+            d="M0,700 L120,640 L220,680 L340,600 L460,660 L580,590 L720,650 L860,580 L1000,640 L1140,570 L1280,635 L1420,565 L1560,625 L1720,555 L1920,620 L1920,1080 L0,1080 Z"
+            fill={RANGE_FAR}
           />
         </g>
       </svg>
 
-      {/* Umbrella canopy — hanging from top */}
-      <svg
-        width="1920"
-        height="1080"
-        viewBox="0 0 1920 1080"
-        style={{ position: "absolute", inset: 0 }}
-      >
-        {UMBRELLAS.map((u, i) => (
-          <Umbrella key={i} u={u} frame={frame} total={durationInFrames} parallax={camPan * (0.4 + (i % 3) * 0.2)} />
-        ))}
+      {/* Neblina cálida horizontal (haze) que separa cordillera del Illimani */}
+      <AbsoluteFill
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(255,190,140,0) 55%, rgba(255,180,120,0.35) 66%, rgba(255,180,120,0) 78%)",
+        }}
+      />
+
+      {/* Illimani — silueta principal con nieve */}
+      <svg width="1920" height="1080" viewBox="0 0 1920 1080" style={{ position: "absolute", inset: 0 }}>
+        <g transform={`translate(${illimaniParallax} 0)`}>
+          {/* masa oscura */}
+          <path d={illimaniPath} fill={ILLIMANI} />
+          {/* sombra lateral izquierda (dirección de la luz: sol al centro-derecha) */}
+          <path
+            d={illimaniPath}
+            fill="url(#illimaniShade)"
+            opacity={0.55}
+          />
+          {/* nieve */}
+          <path d={snowPath} fill={SNOW} opacity={0.9} />
+          {/* brillo cálido sobre nieve (alpenglow tenue) */}
+          <path d={snowPath} fill="url(#snowGlow)" opacity={0.6} />
+        </g>
+        <defs>
+          <linearGradient id="illimaniShade" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#000000" stopOpacity="0.55" />
+            <stop offset="60%" stopColor="#000000" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="snowGlow" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#FFD9A8" stopOpacity="0" />
+            <stop offset="70%" stopColor="#FFB27A" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#FF8C55" stopOpacity="0.85" />
+          </linearGradient>
+        </defs>
       </svg>
 
-      {/* Building silhouettes foreground */}
-      <svg
-        width="1920"
-        height="1080"
-        viewBox="0 0 1920 1080"
-        style={{ position: "absolute", inset: 0 }}
-      >
-        <g transform={`translate(${-camPan * 0.5} 0)`}>
+      {/* Ciudad en primer término — colinas quebradas de La Paz con ventanas titilantes */}
+      <svg width="1920" height="1080" viewBox="0 0 1920 1080" style={{ position: "absolute", inset: 0 }}>
+        <g transform={`translate(${-cityParallax * 0.5} 0)`}>
           <path
             d="M-40,900 L40,880 L60,820 L120,820 L140,860 L200,840 L220,780 L300,790 L320,850 L400,830 L420,770 L500,780 L520,840 L620,820 L640,760 L740,770 L760,830 L880,820 L900,760 L1000,770 L1020,830 L1140,820 L1160,760 L1280,770 L1300,830 L1440,820 L1460,760 L1600,770 L1620,830 L1780,820 L1800,780 L1960,790 L1960,1080 L-40,1080 Z"
-            fill={BUILDINGS}
+            fill={CITY}
           />
-          {/* window glows */}
-          {Array.from({ length: 40 }).map((_, i) => {
+          {Array.from({ length: 48 }).map((_, i) => {
             const r = (n: number) => {
               const x = Math.sin(i * 512.31 + n * 91.7) * 43758.5453;
               return x - Math.floor(x);
             };
             const cx = r(1) * 2000 - 20;
-            const cy = 830 + r(2) * 120;
+            const cy = 820 + r(2) * 140;
             const flick =
-              0.35 + 0.35 * Math.sin(tau * (t * (1 + Math.floor(r(3) * 2)) + r(4)));
+              0.35 + 0.4 * Math.sin(tau * (t * (1 + Math.floor(r(3) * 2)) + r(4)));
             return (
               <rect
                 key={i}
@@ -229,7 +294,20 @@ export const HeroLoop: React.FC = () => {
         </g>
       </svg>
 
-      {/* Bokeh particles */}
+      {/* Paraguas flotando — sólo lado izquierdo */}
+      <svg width="1920" height="1080" viewBox="0 0 1920 1080" style={{ position: "absolute", inset: 0 }}>
+        {UMBRELLAS.map((u, i) => (
+          <UmbrellaNode
+            key={i}
+            u={u}
+            frame={frame}
+            total={durationInFrames}
+            parallax={camPan * (0.3 + (i % 3) * 0.15)}
+          />
+        ))}
+      </svg>
+
+      {/* Bokeh partículas cálidas */}
       <AbsoluteFill>
         {BOKEH.map((b, i) => {
           const x =
@@ -259,18 +337,18 @@ export const HeroLoop: React.FC = () => {
         })}
       </AbsoluteFill>
 
-      {/* Left-side vignette for text contrast */}
+      {/* Vignette izquierda para contraste con el copy */}
       <AbsoluteFill
         style={{
           background:
-            "linear-gradient(90deg, rgba(15,23,42,0.55) 0%, rgba(15,23,42,0.25) 35%, rgba(15,23,42,0) 65%)",
+            "linear-gradient(90deg, rgba(15,10,31,0.6) 0%, rgba(15,10,31,0.28) 35%, rgba(15,10,31,0) 65%)",
         }}
       />
-      {/* Bottom subtle vignette */}
+      {/* Bottom vignette */}
       <AbsoluteFill
         style={{
           background:
-            "linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.25) 100%)",
+            "linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.28) 100%)",
         }}
       />
     </AbsoluteFill>
