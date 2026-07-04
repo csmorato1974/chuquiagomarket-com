@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Search, ChevronDown, Bell, ShoppingCart, Menu, X, User, Plus } from 'lucide-react';
+import { Search, ChevronDown, Bell, Menu, X, User, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { CATEGORIES } from '@/types/marketplace';
 import { useAuth } from '@/hooks/useAuth';
@@ -81,11 +81,6 @@ const Header = () => {
             <Button variant="ghost" size="icon" asChild>
               <Link to="#">
                 <Bell className="h-5 w-5" />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="#">
-                <ShoppingCart className="h-5 w-5" />
               </Link>
             </Button>
             <Button variant="ghost" size="icon" asChild>
