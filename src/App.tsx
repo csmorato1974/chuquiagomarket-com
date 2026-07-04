@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
+import SellerProfile from "./pages/SellerProfile";
 import Publish from "./pages/Publish";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
@@ -41,6 +42,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/productos" element={<Products />} />
           <Route path="/producto/:id" element={<ProductDetail />} />
+          <Route path="/vendedor/:sellerId" element={<SellerProfile />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/publicar" element={<Protected><Publish /></Protected>} />
           <Route path="/perfil" element={<Protected><Profile /></Protected>} />
