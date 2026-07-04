@@ -223,6 +223,8 @@ export type Database = {
           delivery_methods: string[]
           description: string
           id: string
+          pickup_address: string | null
+          pickup_maps_url: string | null
           price_bs: number
           published_at: string | null
           rejection_notes: string | null
@@ -244,6 +246,8 @@ export type Database = {
           delivery_methods?: string[]
           description?: string
           id?: string
+          pickup_address?: string | null
+          pickup_maps_url?: string | null
           price_bs?: number
           published_at?: string | null
           rejection_notes?: string | null
@@ -265,6 +269,8 @@ export type Database = {
           delivery_methods?: string[]
           description?: string
           id?: string
+          pickup_address?: string | null
+          pickup_maps_url?: string | null
           price_bs?: number
           published_at?: string | null
           rejection_notes?: string | null
@@ -297,6 +303,7 @@ export type Database = {
           id: string
           phone: string | null
           updated_at: string
+          whatsapp_phone: string | null
           zone: string | null
         }
         Insert: {
@@ -307,6 +314,7 @@ export type Database = {
           id: string
           phone?: string | null
           updated_at?: string
+          whatsapp_phone?: string | null
           zone?: string | null
         }
         Update: {
@@ -317,6 +325,7 @@ export type Database = {
           id?: string
           phone?: string | null
           updated_at?: string
+          whatsapp_phone?: string | null
           zone?: string | null
         }
         Relationships: []
@@ -386,7 +395,17 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      seller_public: {
+        Row: {
+          avatar_url: string | null
+          display_name: string | null
+          id: string | null
+          verified: boolean | null
+          whatsapp_phone: string | null
+          zone: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
