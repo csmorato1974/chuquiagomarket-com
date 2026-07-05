@@ -192,20 +192,15 @@ const Profile = () => {
           <p className="text-sm text-muted-foreground mb-4">
             Los compradores te contactarán por WhatsApp. Obligatorio para publicar o editar anuncios.
           </p>
-          <Label htmlFor="wa" className="text-sm">Teléfono WhatsApp (formato internacional)</Label>
-          <div className="flex gap-2 mt-2">
-            <Input
-              id="wa"
-              inputMode="tel"
-              placeholder="59171234567"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              maxLength={20}
-            />
+          <Label htmlFor="wa" className="text-sm">Teléfono WhatsApp</Label>
+          <div className="mt-2">
+            <PhoneInput id="wa" value={phone} onChange={setPhone} />
+          </div>
+          <div className="flex gap-2 mt-3">
             <Button onClick={savePhone} disabled={savingPhone}>Guardar</Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Solo dígitos, sin “+”, espacios ni guiones. Ejemplo Bolivia: 59171234567.
+            Elige tu país y escribe el número sin “+”, espacios ni guiones. Ejemplo Bolivia: 71234567.
           </p>
         </div>
 
