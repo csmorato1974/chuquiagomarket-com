@@ -1,38 +1,50 @@
 ## Diagnóstico
 
-Al inspeccionar los privilegios reales en la base de datos, **ningún rol de la Data API (`anon`, `authenticated`, `service_role`) tiene GRANTs sobre las tablas `public`, la vista `seller_public`, ni sobre las funciones `has_role` / `get_seller_public`**. Las migraciones anteriores que intentaron restaurar los permisos no están reflejadas en el estado actual del proyecto, así que PostgREST rechaza todo lo que pasa por la Data API con "permission denied", incluida la lectura del teléfono del vendedor que usa el botón de WhatsApp.
+La vista `public.seller_public` está marcada `security_invoker=true` (cambio hecho para cerrar el finding `SUPA_security_definer_view`). Con esa configuración, la vista se ejecuta bajo el rol del cliente, por lo que las RLS de las tablas base aplican al leerla:
 
-Esto rompe (entre otros):
+- `profiles.profiles_select_own` → `auth.uid() = id` (solo dueño)
+- `seller_verifications.verif_select_own_or_staff` → dueño o staff
 
-- Contactar por WhatsApp desde `ProductDetail` y `SellerProfile` (lectura de `seller_public.whatsapp_phone`).
-- Ver y editar el perfil propio (`profiles`).
-- Enviar / consultar verificación (`seller_verifications`).
-- Listado de anuncios, imágenes, favoritos, categorías y eventos de lead.
-- Chequeo de rol admin/moderator (`has_role` → `user_roles`).
+Resultado: `SELECT ... FROM seller_public WHERE id = <otro_vendedor>` devuelve **0 filas** para cualquier visitante o comprador logueado, incluso si ese vendedor está verificado y tiene productos publicados. Por eso:
 
-Las políticas RLS ya existen y son correctas; falta únicamente la capa de GRANTs.
+- `/vendedor/:id` muestra "Vendedor no encontrado" (frontend hace `fetchSellerPublic` contra la vista).
+- `ProductDetail` y `Products` no obtienen `whatsapp_phone` (frontend hace `hydrateSellers` contra la vista), así que el botón de WhatsApp queda deshabilitado.
 
-## Cambios (una sola migración SQL)
+La función `public.get_seller_public()` es `SECURITY DEFINER` y sí puede leer los datos, pero el frontend no la usa: consulta la vista directamente.
 
-Restaurar los GRANTs mínimos por rol, respetando lo que cada tabla debería exponer:
+## Cambios
 
-**`service_role` — ALL en todas las tablas y vistas de `public`** (necesario para edge functions / admin).
+### 1. Backend — sobrecarga de `get_seller_public` para filtrar por ID
 
-**`authenticated` — SELECT/INSERT/UPDATE/DELETE** en tablas donde el usuario logueado necesita operar bajo RLS:
-`profiles`, `seller_verifications`, `listings`, `listing_images`, `favorites`, `lead_events`, `listing_flags`, `user_roles` (solo SELECT), `audit_log` (solo SELECT), `categories` (solo SELECT), y `SELECT` en la vista `seller_public`.
+Añadir una segunda firma que acepte un array opcional de IDs y devuelva solo esos vendedores, manteniendo la existente para compatibilidad. Sigue siendo `SECURITY DEFINER` con `search_path` fijo (mismo patrón ya aprobado).
 
-**`anon` — SELECT** solo en lo que debe ser público:
-`categories`, `listings`, `listing_images`, y la vista `seller_public`. Además `INSERT` en `lead_events` para poder registrar vistas anónimas.
+```sql
+CREATE OR REPLACE FUNCTION public.get_seller_public(_ids uuid[])
+RETURNS TABLE(id uuid, display_name text, avatar_url text, zone text, whatsapp_phone text, verified boolean)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT p.id, p.display_name, p.avatar_url, p.zone, p.whatsapp_phone,
+         COALESCE(sv.status = 'verified'::verification_status, false)
+    FROM public.profiles p
+    LEFT JOIN public.seller_verifications sv ON sv.user_id = p.id
+   WHERE _ids IS NULL OR p.id = ANY(_ids);
+$$;
 
-**Funciones (`EXECUTE`)**:
-- `has_role(uuid, app_role)` → `authenticated`, `service_role`.
-- `get_seller_public()` → `anon`, `authenticated`.
+GRANT EXECUTE ON FUNCTION public.get_seller_public(uuid[]) TO anon, authenticated, service_role;
+```
 
-`anon` **no** recibe acceso a `profiles`, `seller_verifications`, `user_roles`, `audit_log`, `favorites`, `listing_flags` ni `audit_log`. Los datos públicos del vendedor siguen sirviéndose exclusivamente por `seller_public`.
+Esto **no** reintroduce el finding `SUPA_security_definer_view`: sigue siendo una función, no una vista. El linter emite un `WARN` genérico para toda función `SECURITY DEFINER` invocable desde la API — es el patrón estándar recomendado por Supabase y ya está aceptado en este proyecto para `has_role` y `get_seller_public()`.
+
+### 2. Frontend — `src/lib/listings.ts`
+
+Reemplazar las dos consultas a la vista por llamadas RPC a la nueva sobrecarga:
+
+- `hydrateSellers(rows)` → `supabase.rpc('get_seller_public', { _ids: ids })`.
+- `fetchSellerPublic(sellerId)` → `supabase.rpc('get_seller_public', { _ids: [sellerId] })` y tomar el primer resultado.
+
+Se mantienen los tipos y el shape del `SellerPublic` devuelto, así que ningún componente cambia.
 
 ## Fuera de alcance
 
-- No se cambian políticas RLS.
-- No se toca la definición de `seller_public` ni de ninguna función.
-- No se modifica código de frontend ni buckets de Storage.
-- No se marca ni cambia ningún finding de seguridad.
+- No se cambia la definición ni el `security_invoker` de la vista `seller_public` (permanece para compatibilidad y para el finding ya cerrado).
+- No se tocan políticas RLS.
+- No se modifican otros componentes ni buckets de Storage.
