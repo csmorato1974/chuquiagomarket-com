@@ -90,10 +90,7 @@ const SELECT = `
 async function hydrateSellers(rows: Row[]): Promise<Row[]> {
   const ids = Array.from(new Set(rows.map((r) => r.seller_id)));
   if (ids.length === 0) return rows;
-  const { data: sellers } = await supabase
-    .from('seller_public' as any)
-    .select('id, display_name, whatsapp_phone, verified')
-    .in('id', ids);
+  const { data: sellers } = await supabase.rpc('get_seller_public', { _ids: ids } as any);
   const pMap = new Map(((sellers ?? []) as unknown as { id: string; display_name: string; whatsapp_phone: string | null; verified: boolean }[])
     .map((p) => [p.id, p]));
   return rows.map((r) => {
@@ -148,16 +145,12 @@ export async function fetchListingsBySeller(sellerId: string): Promise<Product[]
 }
 
 export async function fetchSellerPublic(sellerId: string): Promise<SellerPublic | null> {
-  const { data, error } = await supabase
-    .from('seller_public' as any)
-    .select('id, display_name, avatar_url, zone, whatsapp_phone, verified')
-    .eq('id', sellerId)
-    .maybeSingle();
-  if (error || !data) return null;
-  const row = data as unknown as {
+  const { data, error } = await supabase.rpc('get_seller_public', { _ids: [sellerId] } as any);
+  if (error || !data || (data as unknown[]).length === 0) return null;
+  const row = (data as unknown as {
     id: string; display_name: string; avatar_url: string | null;
     zone: string | null; whatsapp_phone: string | null; verified: boolean;
-  };
+  }[])[0];
   return {
     id: row.id,
     displayName: row.display_name || 'Vendedor',

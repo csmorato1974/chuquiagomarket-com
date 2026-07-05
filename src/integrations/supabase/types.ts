@@ -408,17 +408,29 @@ export type Database = {
       }
     }
     Functions: {
-      get_seller_public: {
-        Args: never
-        Returns: {
-          avatar_url: string
-          display_name: string
-          id: string
-          verified: boolean
-          whatsapp_phone: string
-          zone: string
-        }[]
-      }
+      get_seller_public:
+        | {
+            Args: never
+            Returns: {
+              avatar_url: string
+              display_name: string
+              id: string
+              verified: boolean
+              whatsapp_phone: string
+              zone: string
+            }[]
+          }
+        | {
+            Args: { _ids: string[] }
+            Returns: {
+              avatar_url: string
+              display_name: string
+              id: string
+              verified: boolean
+              whatsapp_phone: string
+              zone: string
+            }[]
+          }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
