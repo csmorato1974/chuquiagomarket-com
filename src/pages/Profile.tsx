@@ -13,6 +13,7 @@ import { fetchMyListings } from '@/lib/listings';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizePhone, isValidPhone } from '@/lib/whatsapp';
 import { uploadAvatar, getAvatarSignedUrl, removeAvatar, validateAvatarFile, ACCEPTED_AVATAR_TYPES } from '@/lib/avatars';
+import PhoneInput from '@/components/PhoneInput';
 import { toast } from 'sonner';
 
 const STATUSES: (ListingStatus | 'all')[] = ['all','published','pending_review','draft','paused','sold','rejected','archived'];
